@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<blueprint xmlns="http://www.osgi.org/xmlns/blueprint/v1.0.0"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xmlns:cm="http://aries.apache.org/blueprint/xmlns/blueprint-cm/v1.1.0"
+           xsi:schemaLocation="
+             http://aries.apache.org/blueprint/xmlns/blueprint-cm/v1.1.0 http://aries.apache.org/schemas/blueprint-cm/blueprint-cm-1.1.0.xsd
+             http://www.osgi.org/xmlns/blueprint/v1.0.0 https://www.osgi.org/xmlns/blueprint/v1.0.0/blueprint.xsd">
+    
+    <bean id="MQTTClientUp" class="br.uefs.larsid.dlt.iot.soft.mqtt.MQTTClient"
+        init-method="start" destroy-method="stop">
+        <property name="debugModeValue" value="${debugModeValue}" />
+        <property name="ip" value="${ip_up}" />
+        <property name="port" value="${port_up}" />
+        <property name="userName" value="${user}" />
+        <property name="password" value="${pass}" />
+    </bean>
+    
+    <bean id="MQTTClientHost" class="br.uefs.larsid.dlt.iot.soft.mqtt.MQTTClient"
+        init-method="start" destroy-method="stop">
+        <property name="debugModeValue" value="${debugModeValue}" />
+        <property name="ip" value="${ip}" />
+        <property name="port" value="${port}" />
+        <property name="userName" value="${user}" />
+        <property name="password" value="${pass}" />
+    </bean>
+
+    <bean id="controllerImpl" class="br.uefs.larsid.dlt.iot.soft.main.ControllerImpl"
+        init-method="start" destroy-method="stop">
+        <property name="debugModeValue" value="${debugModeValue}" />
+        <property name="MQTTClientUp" ref="MQTTClientUp" />
+        <property name="MQTTClientHost" ref="MQTTClientHost" />
+        <property name="hasNodes" value="${hasNodes}" />
+        <property name="timeoutInSeconds" value="${timeoutInSeconds}" />
+        <property name="AGENT_ADDR" value="${AGENT_ADDR}" />
+        <property name="AGENT_PORT" value="${AGENT_PORT}" />
+        <property name="CRED_DEF_ID" value="${CRED_DEF_ID}" />
+    </bean>
+
+  <cm:property-placeholder
+		persistent-id="br.uefs.larsid.dlt.soft_iot.client_hyperledger_aries"
+		update-strategy="reload">
+		<cm:default-properties>
+			<cm:property name="ip_up" value="localhost" />
+            <cm:property name="port_up" value="1883" />
+			<cm:property name="ip" value="localhost" />
+			<cm:property name="port" value="1883" />
+			<cm:property name="user" value="karaf" />
+			<cm:property name="pass" value="karaf" />
+			<cm:property name="hasNodes" value="true" />
+			<cm:property name="timeoutInSeconds" value="30" />
+			<cm:property name="debugModeValue" value="true" />
+
+			<cm:property name="AGENT_ADDR" value="172.18.0.3" />
+			<cm:property name="AGENT_PORT" value="8021" />
+			<cm:property name="CRED_DEF_ID" value="WRSprCn3VTQU5ssmQJQajH:3:CL:53944:Agent_Three" />
+
+		</cm:default-properties>
+	</cm:property-placeholder>
+
+</blueprint>

@@ -1,0 +1,10 @@
+jackson-annotations,
+jackson-databind,
+gson,
+org.eclipse.paho.client.mqttv3,
+json,
+aries-client-python,
+core,
+javax.annotation-api;
+scope=provided|compile|runtime|system;
+inline=false
