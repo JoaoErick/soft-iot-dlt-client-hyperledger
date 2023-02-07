@@ -33,7 +33,6 @@
         <property name="timeoutInSeconds" value="${timeoutInSeconds}" />
         <property name="AGENT_ADDR" value="${AGENT_ADDR}" />
         <property name="AGENT_PORT" value="${AGENT_PORT}" />
-        <property name="CRED_DEF_ID" value="${CRED_DEF_ID}" />
     </bean>
 
   <cm:property-placeholder
@@ -49,11 +48,8 @@
 			<cm:property name="hasNodes" value="true" />
 			<cm:property name="timeoutInSeconds" value="30" />
 			<cm:property name="debugModeValue" value="true" />
-
-			<cm:property name="AGENT_ADDR" value="172.18.0.3" />
-			<cm:property name="AGENT_PORT" value="8021" />
-			<cm:property name="CRED_DEF_ID" value="WRSprCn3VTQU5ssmQJQajH:3:CL:53944:Agent_Three" />
-
+			<cm:property name="AGENT_ADDR" value="localhost" />
+			<cm:property name="AGENT_PORT" value="7021" />
 		</cm:default-properties>
 	</cm:property-placeholder>
 

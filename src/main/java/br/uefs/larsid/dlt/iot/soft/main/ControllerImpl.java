@@ -47,7 +47,6 @@ public class ControllerImpl implements Controller {
   /* -------------------------- Aries Topic constants ---------------------- */
   private String AGENT_ADDR;
   private String AGENT_PORT;
-  private String CRED_DEF_ID;
   /* ----------------------------------------------------------------------- */
 
   /* -------------------------- Aries Topic constants ---------------------- */
@@ -418,11 +417,6 @@ public class ControllerImpl implements Controller {
   }
 
   private void receiveInvitation(AriesController ariesController, JsonObject invitationJson) throws IOException {
-      // Scanner scan = new Scanner(System.in);
-      // System.out.println("\nJSON de conexão:");
-      // String invitation = scan.nextLine();
-
-      // JsonObject invitationJson = new Gson().fromJson(invitation, JsonObject.class);
       Invitation invitationObj = new Invitation(invitationJson);
 
       System.out.println("\nRecebendo convite de conexão ...");
@@ -670,6 +664,10 @@ public class ControllerImpl implements Controller {
     this.connectionIdNodes.put(nodeUri, connectionId);
   }
 
+  public int getTimeoutInSeconds() {
+    return timeoutInSeconds;
+  }
+
   public void setTimeoutInSeconds(int timeoutInSeconds) {
     this.timeoutInSeconds = timeoutInSeconds;
   }
@@ -689,21 +687,4 @@ public class ControllerImpl implements Controller {
   public void setAGENT_PORT(String aGENT_PORT) {
     AGENT_PORT = aGENT_PORT;
   }
-
-  public String getCRED_DEF_ID() {
-    return CRED_DEF_ID;
-  }
-
-  public void setCRED_DEF_ID(String cRED_DEF_ID) {
-    CRED_DEF_ID = cRED_DEF_ID;
-  }
-  /**
-   * Retorna um JSON contendo os tipos de sensores disponíveis.
-   *
-   * @return JsonObject
-   */
-  // @Override
-  // public JsonObject getSensorsTypesJSON() {
-  // return sensorsTypesJSON;
-  // }
 }
