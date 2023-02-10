@@ -95,10 +95,6 @@
             <artifactId>annotations</artifactId>
             <version>13.0</version>
         </dependency>
-
-
-
-        
     </dependencies>
 
     <build>

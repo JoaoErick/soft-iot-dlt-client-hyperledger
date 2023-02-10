@@ -15,7 +15,6 @@ import br.uefs.larsid.dlt.iot.soft.utils.File;
 import br.uefs.larsid.dlt.iot.soft.utils.TimeRegister;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.zxing.WriterException;
 
@@ -28,6 +27,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 import org.hyperledger.aries.api.connection.ConnectionRecord;
 import org.hyperledger.aries.api.connection.CreateInvitationResponse;
@@ -76,6 +76,8 @@ public class ControllerImpl implements Controller {
   public static Schema schema;
   public static CredentialDefinition credentialDefinition;
 
+  private static Logger log = Logger.getLogger(ControllerImpl.class.getName());
+
   public ControllerImpl() {
   }
 
@@ -85,6 +87,8 @@ public class ControllerImpl implements Controller {
   public void start() {
     this.MQTTClientUp.connect();
     this.MQTTClientHost.connect();
+    
+    printlnDebug("Start Hyperledger bundle!");
 
     if (hasNodes) {
       nodesUris = new ArrayList<>();
@@ -129,21 +133,12 @@ public class ControllerImpl implements Controller {
           topics,
           QOS,
           debugModeValue);
-
-      String nodeUri = String
-          .format("%s:%s", MQTTClientHost.getIp(), MQTTClientHost.getPort());
-
-      try {
-        this.sendJSONInvitation(nodeUri);
-      } catch (IOException | WriterException e) {
-        e.printStackTrace();
-      }
     }
 
     ariesController = new AriesController(AGENT_ADDR, AGENT_PORT);
 
     try {
-      System.out.println("\nEnd Point: " + ariesController.getEndPoint() + "\n");
+      printlnDebug("End Point: " + ariesController.getEndPoint());
       /* Base to create issuer class */
       /* Criar uma classe para servir de base para implementação de credenciais especificas */
       /* Implementar demais métodos, verificação, recepção, ... */
@@ -186,6 +181,16 @@ public class ControllerImpl implements Controller {
     AttributeRestriction attributeRestriction = new AttributeRestriction(nameAttrRestriction, nameRestriction, propertyRestriction);
     List<AttributeRestriction> attributesRestrictions = new ArrayList<>();
     attributesRestrictions.add(attributeRestriction);
+
+    if (!hasNodes) {
+      try {
+        String nodeUri = String
+          .format("%s:%s", MQTTClientHost.getIp(), MQTTClientHost.getPort());
+        this.sendJSONInvitation(nodeUri);
+      } catch (IOException | WriterException e) {
+        e.printStackTrace();
+      }
+    }
     
   }
 
@@ -213,9 +218,9 @@ public class ControllerImpl implements Controller {
   }
 
   public void sendJSONInvitation(String nodeUri) throws IOException, WriterException {
-    printlnDebug(">> Send Invitation URL...");
     JsonObject jsonResult = this.createInvitation(nodeUri);
-
+    
+    printlnDebug(">> Send Invitation URL...");
     byte[] payload = jsonResult.toString().getBytes();
     this.MQTTClientUp.publish(CONNECT, payload, QOS);
   }
@@ -227,26 +232,26 @@ public class ControllerImpl implements Controller {
 
   private JsonObject createInvitation(AriesController ariesController, String label, String nodeUri)
       throws IOException, WriterException {
-    System.out.println("\nCriando convite de conexão ...");
+    printlnDebug("\nCriando convite de conexão ...");
 
     CreateInvitationResponse createInvitationResponse = ariesController.createInvitation(label);
 
     String url = ariesController.getURLInvitation(createInvitationResponse);
 
-    System.out.println("\nUrl: " + url);
+    printlnDebug("\nUrl: " + url);
 
     String json = ariesController.getJsonInvitation(createInvitationResponse);
 
-    System.out.println("Json Invitation: " + json);
+    printlnDebug("Json Invitation: " + json);
 
-    System.out.print("\nConvite Criado!\n");
+    printlnDebug("\nConvite Criado!\n");
 
     JsonObject jsonInvitation = new Gson().fromJson(json, JsonObject.class);
 
     jsonInvitation.addProperty("connectionId", createInvitationResponse.getConnectionId());
     jsonInvitation.addProperty("nodeUri", nodeUri);
 
-    System.out.println("Final JSON: " + jsonInvitation.toString());
+    printlnDebug("Final JSON: " + jsonInvitation.toString());
 
     return jsonInvitation;
   }
@@ -598,7 +603,7 @@ public class ControllerImpl implements Controller {
 
   private void printlnDebug(String str) {
     if (debugModeValue) {
-      System.out.println(str);
+      log.info(str);
     }
   }
 
