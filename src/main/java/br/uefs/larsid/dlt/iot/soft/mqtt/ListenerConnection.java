@@ -13,11 +13,16 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.zxing.WriterException;
 
+import java.util.logging.Logger;
+
 public class ListenerConnection implements IMqttMessageListener {
 
   /*-------------------------Constantes--------------------------------------*/
   private static final String CONNECT = "SYN";
   private static final String DISCONNECT = "FIN";
+  private static final int TIMEOUT_IN_SECONDS = 25;
+  private static Logger log = Logger.getLogger(ListenerConnection.class.getName());
+
   /*-------------------------------------------------------------------------*/
 
   /* -------------------------- Aries Topic constants ----------------------- */
@@ -58,15 +63,6 @@ public class ListenerConnection implements IMqttMessageListener {
     }
   }
 
-  // public void initialize(){
-  // try {
-  // controllerImpl.createInvitation(this.MQTTClientHost.getIp()+":"+this.MQTTClientHost.getPort());
-  // } catch (IOException | WriterException e) {
-  // // TODO Auto-generated catch block
-  // e.printStackTrace();
-  // }
-  // }
-
   @Override
   public void messageArrived(String topic, MqttMessage message)
       throws Exception {
@@ -81,6 +77,7 @@ public class ListenerConnection implements IMqttMessageListener {
         printlnDebug("CONNECT...");
         JsonObject jsonProperties = new Gson().fromJson(msg, JsonObject.class);
 
+        /* Add new URI gateway */
         String nodeUri = jsonProperties.get("nodeUri").getAsString();
         String connectionId = jsonProperties.get("connectionId").getAsString();
 
@@ -88,14 +85,34 @@ public class ListenerConnection implements IMqttMessageListener {
 
         this.controllerImpl.addNodeUri(nodeUri);
 
+        /* Receive Connection Invitation */
         jsonProperties.remove("nodeUri");
         jsonProperties.remove("connectionId");
+
         this.controllerImpl.receiveInvitation(jsonProperties);
-
         printlnDebug(">> Invitation Accepted!");
-        // this.mqttClient.publish(ACCEPT_INVITATION_RES, "".getBytes(), QOS);
 
-        // sendToControllerAries(ACCEPT_INVITATION, jsonProperties.toString());
+        /* Issue Credential */
+        String json = "{" +
+            "\"value\":\"" + nodeUri.split(":")[0] + "\"," +
+            "\"connectionId\":\"" + this.controllerImpl.getConnectionIdNodes().get(nodeUri) + "\"" +
+        "}";
+
+        printlnDebug("\nReceived Connection Id: " + this.controllerImpl.getConnectionIdNodes().get(nodeUri));
+
+        long start = System.currentTimeMillis();
+        long end = start + TIMEOUT_IN_SECONDS * 1000;
+
+        /*
+         * Aguarda um tempo necessário para que a conexão entre os agentes
+         * esteja realmente pronta.
+         */
+        while (System.currentTimeMillis() < end) {
+        }
+
+        printlnDebug("\nJSON of credential issuance: " + json);
+
+        // sendToControllerAries(ISSUE_CREDENTIAL, json);
 
         break;
       case DISCONNECT:
@@ -104,11 +121,6 @@ public class ListenerConnection implements IMqttMessageListener {
 
         break;
     }
-  }
-
-  private void sendToControllerAries(String topic, String message) {
-    byte[] payload = message.getBytes();
-    this.MQTTClientHost.publish(topic, payload, QOS);
   }
 
   private void publishToDown(String topicDown, byte[] messageDown) {
@@ -132,7 +144,7 @@ public class ListenerConnection implements IMqttMessageListener {
 
   private void printlnDebug(String str) {
     if (isDebugModeValue()) {
-      System.out.println(str);
+      log.info(str);
     }
   }
 
