@@ -142,6 +142,10 @@ public class AriesController {
         return getAriesClient().schemasGetById(schemaId).get();
     }
 
+    public ConnectionRecord getConnection(String connectionId) throws IOException {
+        return getAriesClient().connectionsGetById(connectionId).get();
+    }
+
     public List<ConnectionRecord> getConnections() throws IOException {
         return getAriesClient().connections().get();
     }

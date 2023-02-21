@@ -93,4 +93,21 @@ public interface Controller {
    * @param invitationJson
    */
   public void receiveInvitation(JsonObject invitationJson) throws IOException;
+
+  /**
+   * 
+   * @param jsonProperties
+   * @throws IOException 
+   * 
+   */
+  public void issueCredentialV1(JsonObject jsonProperties) throws IOException;
+
+  /**
+   * 
+   * @param connectionId
+   * @throws IOException
+   * @throws InterruptedException 
+   * 
+   */
+  public void sendRequestPresentationRequest(String connectionId) throws IOException, InterruptedException;
 }

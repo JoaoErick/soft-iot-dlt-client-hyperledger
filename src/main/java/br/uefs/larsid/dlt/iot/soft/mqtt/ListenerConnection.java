@@ -2,8 +2,6 @@ package br.uefs.larsid.dlt.iot.soft.mqtt;
 
 import br.uefs.larsid.dlt.iot.soft.services.Controller;
 
-import java.io.IOException;
-import java.util.Base64;
 import java.util.List;
 
 import org.eclipse.paho.client.mqttv3.IMqttMessageListener;
@@ -11,25 +9,18 @@ import org.eclipse.paho.client.mqttv3.MqttMessage;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-import com.google.zxing.WriterException;
 
 import java.util.logging.Logger;
 
 public class ListenerConnection implements IMqttMessageListener {
 
-  /*-------------------------Constantes--------------------------------------*/
+  /*------------------------------ Constantes ------------------------------*/
   private static final String CONNECT = "SYN";
   private static final String DISCONNECT = "FIN";
   private static final int TIMEOUT_IN_SECONDS = 25;
-  private static Logger log = Logger.getLogger(ListenerConnection.class.getName());
-
-  /*-------------------------------------------------------------------------*/
-
-  /* -------------------------- Aries Topic constants ----------------------- */
-  private static final String ACCEPT_INVITATION = "POST ACCEPT_INVITATION";
-  /* ----------------------------------------------------------------------- */
-
   private static final int QOS = 1;
+  private static Logger log = Logger.getLogger(ListenerConnection.class.getName());
+  /*-------------------------------------------------------------------------*/
 
   private boolean debugModeValue;
   private Controller controllerImpl;
@@ -88,31 +79,33 @@ public class ListenerConnection implements IMqttMessageListener {
         /* Receive Connection Invitation */
         jsonProperties.remove("nodeUri");
         jsonProperties.remove("connectionId");
-
+        
         this.controllerImpl.receiveInvitation(jsonProperties);
-        printlnDebug(">> Invitation Accepted!");
+        printlnDebug("Invitation Accepted!");
+        printlnDebug("\nReceived Connection Id: " + this.controllerImpl.getConnectionIdNodes().get(nodeUri));
+        
+        /* Create JSON to Issue Credential */
+        JsonObject jsonIssueCredential = new JsonObject();
+        jsonIssueCredential.addProperty("value", nodeUri.split(":")[0]);
+        jsonIssueCredential.addProperty("connectionId", connectionId);
+
+        /* Waiting time for the connection between agents to become active */
+        long end = System.currentTimeMillis() + TIMEOUT_IN_SECONDS * 1000;
+
+        while (System.currentTimeMillis() < end) {}
+
+        printlnDebug("\nJSON of Credential Issuance: " + jsonIssueCredential.getAsString());
 
         /* Issue Credential */
-        String json = "{" +
-            "\"value\":\"" + nodeUri.split(":")[0] + "\"," +
-            "\"connectionId\":\"" + this.controllerImpl.getConnectionIdNodes().get(nodeUri) + "\"" +
-        "}";
+        this.controllerImpl.issueCredentialV1(jsonIssueCredential);
 
-        printlnDebug("\nReceived Connection Id: " + this.controllerImpl.getConnectionIdNodes().get(nodeUri));
+        /* Waiting time for the credential to be received */
+        end = System.currentTimeMillis() + TIMEOUT_IN_SECONDS * 1000;
 
-        long start = System.currentTimeMillis();
-        long end = start + TIMEOUT_IN_SECONDS * 1000;
+        while (System.currentTimeMillis() < end) {}
 
-        /*
-         * Aguarda um tempo necessário para que a conexão entre os agentes
-         * esteja realmente pronta.
-         */
-        while (System.currentTimeMillis() < end) {
-        }
-
-        printlnDebug("\nJSON of credential issuance: " + json);
-
-        // sendToControllerAries(ISSUE_CREDENTIAL, json);
+        /* Send request for presentation */
+        this.controllerImpl.sendRequestPresentationRequest(connectionId);
 
         break;
       case DISCONNECT:
@@ -123,6 +116,7 @@ public class ListenerConnection implements IMqttMessageListener {
     }
   }
 
+  /* Envia uma mensagem para um tópico especificado em que os nós inferiores estão assinados. */
   private void publishToDown(String topicDown, byte[] messageDown) {
     List<String> nodesUris = this.controllerImpl.getNodeUriList();
     String user = this.MQTTClientUp.getUserName();

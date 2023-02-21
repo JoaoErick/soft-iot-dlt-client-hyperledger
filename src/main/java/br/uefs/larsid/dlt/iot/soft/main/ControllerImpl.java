@@ -9,8 +9,6 @@ import br.uefs.larsid.dlt.iot.soft.model.Schema;
 import br.uefs.larsid.dlt.iot.soft.mqtt.ListenerConnection;
 import br.uefs.larsid.dlt.iot.soft.mqtt.MQTTClient;
 import br.uefs.larsid.dlt.iot.soft.services.Controller;
-import br.uefs.larsid.dlt.iot.soft.utils.File;
-import br.uefs.larsid.dlt.iot.soft.utils.TimeRegister;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
@@ -18,8 +16,6 @@ import com.google.zxing.WriterException;
 
 import java.io.IOException;
 import java.sql.Timestamp;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -35,14 +31,14 @@ import org.hyperledger.aries.api.schema.SchemaSendResponse;
 
 public class ControllerImpl implements Controller {
 
-  /*--------------------------Constants-------------------------------------*/
+  /*------------------------------- Constants -------------------------------*/
   private static final int QOS = 1;
 
   private static final String CONNECT = "SYN";
   private static final String DISCONNECT = "FIN";
   /*-------------------------------------------------------------------------*/
 
-  /* -------------------------- Aries Topic constants ---------------------- */
+  /* ------------------------ Aries Topic constants ------------------------ */
   private String AGENT_ADDR;
   private String AGENT_PORT;
   /* ----------------------------------------------------------------------- */
@@ -126,11 +122,11 @@ public class ControllerImpl implements Controller {
       e.printStackTrace();
     }
 
-    // criando solicitação de prova
+    /* Creating a proof request */
     String name = "Prove que é um gateway válido?";
     String comment = "É um gateway válido?";
     String version = "1.0";
-    String nameAttrRestriction = "nome";
+    String nameAttrRestriction = "id";
     String nameRestriction = "cred_def_id";
     String propertyRestriction = "JU1jTydsRztc8XvjPHboAn:3:CL:63882:tag_1";
 
@@ -197,6 +193,9 @@ public class ControllerImpl implements Controller {
     this.MQTTClientUp.publish(CONNECT, payload, QOS);
   }
 
+  /* 
+   * Creating connection invitation.
+   */
   public JsonObject createInvitation(String nodeUri) throws IOException, WriterException {
     int idConvite = ariesController.getConnections().size();
     return createInvitation(ariesController, ("Convite_" + idConvite++), nodeUri);
@@ -228,6 +227,10 @@ public class ControllerImpl implements Controller {
     return jsonInvitation;
   }
 
+  /* 
+   * Creating credential definition with attribute "id" that 
+   * represents the IP address of the gateway.
+   */
   public String createCredentialDefinition() throws IOException {
     return createCredentialDefinition(ariesController, schema, credentialDefinition);
   }
@@ -254,15 +257,36 @@ public class ControllerImpl implements Controller {
     return credentialDefinition.getId();
   }
 
-  private static void issueCredentialV1(AriesController ariesController, Credential credential,
-      ConnectionRecord connectionRecord) throws IOException {
-    System.out.println("\nEmitindo Credencial ...");
+  /* 
+   * Issuing a credential to a connected gateway.
+   */
+  public void issueCredentialV1(JsonObject jsonProperties) throws IOException {
+    issueCredentialV1(ariesController, jsonProperties);
+  }
+
+  private void issueCredentialV1(AriesController ariesController, JsonObject jsonProperties) throws IOException {
+    String value = jsonProperties.get("value").getAsString();
+    String connectionId = jsonProperties.get("connectionId").getAsString();
+
+    // Collecting attribute values
+    Map<String, String> values = new HashMap<>();
+    values.put("id", value);
+
+    // Creating credencial
+    Boolean autoRemove = false;
+    Credential credential = new Credential(credentialDefinition, autoRemove);
+    credential.addValues(values);
+
+    ConnectionRecord connectionRecord = ariesController.getConnection(connectionId);
+
+    // Issuing credential
+    printlnDebug("\nEmitindo Credencial...");
 
     ariesController.issueCredentialV1(connectionRecord.getConnectionId(), credential);
 
-    System.out.println("Credencial ID: " + credential.getId());
+    printlnDebug("Credencial ID: " + credential.getId());
 
-    System.out.println("\nCredencial Emitinda!\n");
+    printlnDebug("\nCredencial Emitida!\n");
   }
 
   private static void listSchemas(AriesController ariesController) throws IOException {
@@ -316,94 +340,77 @@ public class ControllerImpl implements Controller {
     System.out.println("\nFim da lista de conexões!\n");
   }
 
-  // private static void sendRequestPresentationRequest(AriesController
-  // ariesController) throws IOException, InterruptedException {
-  // Scanner scan = new Scanner(System.in);
-  // String name = "Prove que você é você";
-  // String comment = "Essa é uma verificação de prova do larsid";
-  // String version = "1.0";
-  // String nameAttrRestriction = "";
-  // String nameRestriction = "cred_def_id";
-  // String propertyRestriction = "";
+  /* 
+   * Send presentation Request to gateways.
+   */
+  public void sendRequestPresentationRequest(String connectionId) throws IOException, InterruptedException {
+    sendRequestPresentationRequest(ariesController, connectionId);
+  }
 
-  // //listando definições de credenciais
-  // listCredentialDefinitionsCreated(ariesController);
-  // System.out.println("Número da definição de credencial: ");
-  // int numberCredentialDefinition = scan.nextInt();
+  private void sendRequestPresentationRequest(AriesController ariesController, String connectionId) throws IOException, InterruptedException {
+    
+    /* Creating a proof request */
+    String name = "Prove que é um gateway válido?";
+    String comment = "Essa é uma verificação de prova do larsid";
+    String version = "1.0";
+    String nameAttrRestriction = "";
+    String nameRestriction = "cred_def_id";
+    String propertyRestriction = "";
 
-  // CredentialDefinition credentialDefinition =
-  // ariesController.getCredentialDefinitionById(
-  // ariesController.getCredentialDefinitionsCreated().getCredentialDefinitionIds().get(numberCredentialDefinition));
+    nameAttrRestriction = credentialDefinition.getSchema().getAttributes().get(0);
+    propertyRestriction = credentialDefinition.getId();
 
-  // nameAttrRestriction =
-  // credentialDefinition.getSchema().getAttributes().get(0);
-  // propertyRestriction = credentialDefinition.getId();
+    AttributeRestriction attributeRestriction = new AttributeRestriction(nameAttrRestriction, nameRestriction, propertyRestriction);
+    List<AttributeRestriction> attributesRestrictions = new ArrayList<>();
+    attributesRestrictions.add(attributeRestriction);
 
-  // AttributeRestriction attributeRestriction = new
-  // AttributeRestriction(nameAttrRestriction, nameRestriction,
-  // propertyRestriction);
-  // List<AttributeRestriction> attributesRestrictions = new ArrayList<>();
-  // attributesRestrictions.add(attributeRestriction);
+    ConnectionRecord connectionRecord = ariesController.getConnection(connectionId);
 
-  // //listando conexões
-  // listConnections(ariesController);
-  // System.out.println("Número da conexão: ");
-  // int numberConnection = scan.nextInt();
-  // ConnectionRecord connectionRecord =
-  // ariesController.getConnections().get(numberConnection);
+    /* Start timestamp of test request */
+    Timestamp timeSend = new Timestamp(System.currentTimeMillis());
 
-  // //Guardando timestamp do inicio da solicitação de prova
-  // Timestamp timeSend = new Timestamp(System.currentTimeMillis());
+    String presentationExchangeId =
+    ariesController.sendRequestPresentationRequest(name, comment, version, connectionRecord.getConnectionId(), attributesRestrictions);
 
-  // String presentationExchangeId =
-  // ariesController.sendRequestPresentationRequest(name, comment, version,
-  // connectionRecord.getConnectionId(), attributesRestrictions);
+    printlnDebug("\nEnviando solicitação de prova ...");
 
-  // System.out.println("\nEnviando solicitação de prova ...");
+    PresentationExchangeRecord presentationExchangeRecord;
 
-  // PresentationExchangeRecord presentationExchangeRecord;
+    do {
+      presentationExchangeRecord = ariesController.getPresentation(presentationExchangeId);
+      printlnDebug("\nUpdateAt: " + presentationExchangeRecord.getUpdatedAt());
+      printlnDebug("Presentation: " + presentationExchangeRecord.getPresentation());
+      printlnDebug("Verificada: " + presentationExchangeRecord.isVerified());
+      printlnDebug("State: " + presentationExchangeRecord.getState());
+      printlnDebug("Auto Presentation: " + presentationExchangeRecord.getAutoPresent());
+    } while
+    (!presentationExchangeRecord.getState().equals(PresentationExchangeState.REQUEST_RECEIVED)
+    &&
+    !presentationExchangeRecord.getState().equals(PresentationExchangeState.VERIFIED));
 
-  // do {
-  // presentationExchangeRecord =
-  // ariesController.getPresentation(presentationExchangeId);
-  // System.out.println("UpdateAt: " + presentationExchangeRecord.getUpdatedAt());
-  // System.out.println("Presentation: " +
-  // presentationExchangeRecord.getPresentation());
-  // System.out.println("Verificada: " + presentationExchangeRecord.isVerified());
-  // System.out.println("State: " + presentationExchangeRecord.getState());
-  // System.out.println("Auto Presentation: " +
-  // presentationExchangeRecord.getAutoPresent());
-  // //Thread.sleep(2 * 1000);
-  // } while
-  // (!presentationExchangeRecord.getState().equals(PresentationExchangeState.REQUEST_RECEIVED)
-  // &&
-  // !presentationExchangeRecord.getState().equals(PresentationExchangeState.VERIFIED));
+    printlnDebug("\nSolicitação de prova recebida!\n");
 
-  // System.out.println("\nSolicitação de prova recebida!\n");
+    verifyProofPresentation(ariesController, presentationExchangeId);
 
-  // verifyProofPresentation(ariesController, presentationExchangeId);
+    printlnDebug("\nCalculando time stamp ...\n");
 
-  // System.out.println("\nCalculando time stamp ...\n");
+    Timestamp timeReceive = new Timestamp(System.currentTimeMillis());
+    printlnDebug("\nCalculando time stamp ...");
+    printlnDebug("Tempo Inicial: " + timeSend);
+    printlnDebug("Tempo Final: " + timeReceive);
+    printlnDebug("Diferença: " + (timeReceive.getTime() -
+    timeSend.getTime()));
+  }
 
-  // Timestamp timeReceive = new Timestamp(System.currentTimeMillis());
-  // System.out.println("Calculando time stamp ...");
-  // System.out.println("Tempo Inicial: " + timeSend);
-  // System.out.println("Tempo Final: " + timeReceive);
-  // System.out.println("Diferença: " + (timeReceive.getTime() -
-  // timeSend.getTime()));
-  // }
+  private void verifyProofPresentation(AriesController ariesController, String presentationExchangeId) throws IOException, InterruptedException {
+    printlnDebug("\nVerificando solicitação de prova ...");
 
-  // private static void verifyProofPresentation(AriesController ariesController,
-  // String presentationExchangeId) throws IOException, InterruptedException {
-  // System.out.println("\nVerificando solicitação de prova ...");
-
-  // //Thread.sleep(5 * 1000);
-  // if (ariesController.getPresentation(presentationExchangeId).getVerified()) {
-  // System.out.println("\nCredencial verificada!\n");
-  // } else {
-  // System.err.println("\nCredencial não verificada!\n");
-  // }
-  // }
+    if (ariesController.getPresentation(presentationExchangeId).getVerified()) {
+      printlnDebug("\nCredencial verificada!\n");
+    } else {
+      System.err.println("\nCredencial não verificada!\n");
+    }
+  }
 
   public void receiveInvitation(JsonObject invitationJson) throws IOException {
     receiveInvitation(ariesController, invitationJson);
@@ -418,104 +425,6 @@ public class ControllerImpl implements Controller {
 
     printlnDebug("\nConexao:\n" + connectionRecord.toString());
   }
-
-  // private static void saveTimeRegister(String data) throws IOException {
-  // String dateTime =
-  // LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH'h'mm'min'ss's'"));
-  // File.write("times_"+dateTime, "json", data);
-  // }
-
-  // private static void testTimeRegister() throws InterruptedException,
-  // IOException {
-  // Timestamp t1 = new Timestamp(System.currentTimeMillis());
-  // Thread.sleep(2 * 1000);
-  // Timestamp t2 = new Timestamp(System.currentTimeMillis());
-
-  // TimeRegister tr = new TimeRegister(t1, t2);
-
-  // JsonArray timeRegisters = new JsonArray();
-  // timeRegisters.add(tr.getJson());
-
-  // saveTimeRegister(timeRegisters.toString());
-  // }
-
-  // private static void sendRequestPresentationRequests(AriesController
-  // ariesController) throws IOException, InterruptedException {
-  // Scanner scan = new Scanner(System.in);
-  // String name = "Prove que você é você";
-  // String comment = "Essa é uma verificação de prova do larsid";
-  // String version = "1.0";
-  // String nameAttrRestriction = "";
-  // String nameRestriction = "cred_def_id";
-  // String propertyRestriction = "";
-
-  // //listando definições de credenciais
-  // // listCredentialDefinitionsCreated(ariesController);
-  // System.out.println("Número da definição de credencial: ");
-  // int numberCredentialDefinition = scan.nextInt();
-
-  // CredentialDefinition credentialDefinition =
-  // ariesController.getCredentialDefinitionById(
-  // ariesController.getCredentialDefinitionsCreated().getCredentialDefinitionIds().get(numberCredentialDefinition));
-
-  // nameAttrRestriction =
-  // credentialDefinition.getSchema().getAttributes().get(0);
-  // propertyRestriction = credentialDefinition.getId();
-
-  // AttributeRestriction attributeRestriction = new
-  // AttributeRestriction(nameAttrRestriction, nameRestriction,
-  // propertyRestriction);
-  // List<AttributeRestriction> attributesRestrictions = new ArrayList<>();
-  // attributesRestrictions.add(attributeRestriction);
-
-  // //listando conexões
-  // listConnections(ariesController);
-  // System.out.println("Número da conexão: ");
-  // int numberConnection = scan.nextInt();
-  // ConnectionRecord connectionRecord =
-  // ariesController.getConnections().get(numberConnection);
-
-  // //Guardando timestamp do inicio da solicitação de prova
-  // Timestamp timeSend = null;
-  // Timestamp timeReceive = null;
-  // String presentationExchangeId = null;
-  // JsonArray timeRegisters = new JsonArray();
-
-  // System.out.print("Numero de verificações de provas: ");
-  // int limit = scan.nextInt();
-
-  // System.out.println("\nEnviando " + limit + " solicitações de prova ...");
-
-  // for (int i = 0; i < limit; i++) {
-  // timeSend = new Timestamp(System.currentTimeMillis());
-  // presentationExchangeId = ariesController.sendRequestPresentationRequest(name,
-  // comment, version, connectionRecord.getConnectionId(),
-  // attributesRestrictions);
-
-  // PresentationExchangeRecord presentationExchangeRecord;
-
-  // do {
-  // presentationExchangeRecord =
-  // ariesController.getPresentation(presentationExchangeId);
-  // } while
-  // (!presentationExchangeRecord.getState().equals(PresentationExchangeState.REQUEST_RECEIVED)
-  // &&
-  // !presentationExchangeRecord.getState().equals(PresentationExchangeState.VERIFIED));
-
-  // verifyProofPresentation(ariesController, presentationExchangeId);
-
-  // timeReceive = new Timestamp(System.currentTimeMillis());
-
-  // timeRegisters.add(new TimeRegister(timeSend, timeReceive).getJson());
-  // Thread.sleep(10 * 1000); //evitar cache
-  // }
-
-  // System.out.println("\n" + limit + " solicitações de prova enviadas!");
-  // System.out.println("\nSalvando " + limit + " solicitações de provas ...");
-  // saveTimeRegister(timeRegisters.toString());
-  // System.out.println("\n" + limit + " solicitações de prova salvas!");
-
-  // }
 
   /**
    * Adiciona um URI na lista de URIs.
