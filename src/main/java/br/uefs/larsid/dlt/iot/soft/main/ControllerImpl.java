@@ -148,7 +148,6 @@ public class ControllerImpl implements Controller {
         e.printStackTrace();
       }
       this.setCrendentialDefinitionIsConfigured(true);
-      printlnDebug("Crendential Definition configured!\n");
     } else {
       try {
         String nodeUri = String
@@ -207,15 +206,11 @@ public class ControllerImpl implements Controller {
 
     CreateInvitationResponse createInvitationResponse = ariesController.createInvitation(label);
 
-    String url = ariesController.getURLInvitation(createInvitationResponse);
-
-    printlnDebug("Url: " + url);
-
     String json = ariesController.getJsonInvitation(createInvitationResponse);
 
     printlnDebug("Json Invitation: " + json);
 
-    printlnDebug("Convite Criado!");
+    printlnDebug("Invitation created!");
 
     JsonObject jsonInvitation = new Gson().fromJson(json, JsonObject.class);
 
@@ -237,22 +232,22 @@ public class ControllerImpl implements Controller {
 
   private String createCredentialDefinition(AriesController ariesController, Schema schema,
       CredentialDefinition credentialDefinition) throws IOException {
-    printlnDebug("Criando Schema ...");
+    printlnDebug("Creating Schema...");
 
     SchemaSendResponse schemaSendResponse = ariesController.createSchema(schema);
     schema.setId(schemaSendResponse.getSchemaId());
 
     printlnDebug("Schema ID: " + schema.getId());
 
-    printlnDebug("Schema Criado!");
+    printlnDebug("Schema Created!");
 
-    printlnDebug("Criando definicao de credencial ...");
+    printlnDebug("Creating Credential Definition ...");
 
     ariesController.createCredendentialDefinition(credentialDefinition);
 
-    printlnDebug("Definicao de Credencial ID: " + credentialDefinition.getId());
+    printlnDebug("Credential Definition ID: " + credentialDefinition.getId());
 
-    printlnDebug("Definicao de Credencial Criada!\n");
+    printlnDebug("Crendential Definition configured!\n");
 
     return credentialDefinition.getId();
   }
@@ -280,42 +275,13 @@ public class ControllerImpl implements Controller {
     ConnectionRecord connectionRecord = ariesController.getConnection(connectionId);
 
     // Issuing credential
-    printlnDebug("\nEmitindo Credencial...");
+    printlnDebug("\nIssuing credential...");
 
     ariesController.issueCredentialV1(connectionRecord.getConnectionId(), credential);
 
-    printlnDebug("Credencial ID: " + credential.getId());
+    printlnDebug("Credential ID: " + credential.getId());
 
-    printlnDebug("\nCredencial Emitida!\n");
-  }
-
-  private static void listSchemas(AriesController ariesController) throws IOException {
-    System.out.println("\nConsultando schemas ...");
-
-    List<String> schemas = ariesController.getSchemasCreated();
-
-    System.out.println("\nListando schemas ...");
-
-    for (String schema : schemas) {
-      System.out.println("Schema: " + schema);
-    }
-
-    System.out.println("\nFim da lista de schemas!\n");
-  }
-
-  private static void listSchemaById(AriesController ariesController, String schemaId) throws IOException {
-    System.out.println("\nConsultando schemas ...");
-
-    SchemaSendResponse.Schema schemaResponse = ariesController.getSchemaById(schemaId);
-
-    System.out.println("\nListando schema ...");
-
-    System.out.println("Name: " + schemaResponse.getName());
-    System.out.println("Version: " + schemaResponse.getVersion());
-    System.out.println("Attributes: " + schemaResponse.getAttrNames());
-
-    System.out.println("\nFim da lista de schemas!\n");
-
+    printlnDebug("\nIssued Credential!\n");
   }
 
   private static void listConnections(AriesController ariesController) throws IOException {
@@ -372,7 +338,7 @@ public class ControllerImpl implements Controller {
     String presentationExchangeId =
     ariesController.sendRequestPresentationRequest(name, comment, version, connectionRecord.getConnectionId(), attributesRestrictions);
 
-    printlnDebug("\nEnviando solicitação de prova ...");
+    printlnDebug("\nSubmitting proof request...");
 
     PresentationExchangeRecord presentationExchangeRecord;
 
@@ -380,7 +346,7 @@ public class ControllerImpl implements Controller {
       presentationExchangeRecord = ariesController.getPresentation(presentationExchangeId);
       printlnDebug("\nUpdateAt: " + presentationExchangeRecord.getUpdatedAt());
       printlnDebug("Presentation: " + presentationExchangeRecord.getPresentation());
-      printlnDebug("Verificada: " + presentationExchangeRecord.isVerified());
+      printlnDebug("Verified: " + presentationExchangeRecord.isVerified());
       printlnDebug("State: " + presentationExchangeRecord.getState());
       printlnDebug("Auto Presentation: " + presentationExchangeRecord.getAutoPresent());
     } while
@@ -388,30 +354,31 @@ public class ControllerImpl implements Controller {
     &&
     !presentationExchangeRecord.getState().equals(PresentationExchangeState.VERIFIED));
 
-    printlnDebug("\nSolicitação de prova recebida!\n");
+    printlnDebug("\nProof Request Received!\n");
 
     verifyProofPresentation(ariesController, presentationExchangeId);
 
-    printlnDebug("\nCalculando time stamp ...\n");
-
     Timestamp timeReceive = new Timestamp(System.currentTimeMillis());
-    printlnDebug("\nCalculando time stamp ...");
-    printlnDebug("Tempo Inicial: " + timeSend);
-    printlnDebug("Tempo Final: " + timeReceive);
-    printlnDebug("Diferença: " + (timeReceive.getTime() -
+    printlnDebug("\nCalculate timestamp...");
+    printlnDebug("Initial Time: " + timeSend);
+    printlnDebug("Final Time: " + timeReceive);
+    printlnDebug("Difference: " + (timeReceive.getTime() -
     timeSend.getTime()));
   }
 
   private void verifyProofPresentation(AriesController ariesController, String presentationExchangeId) throws IOException, InterruptedException {
-    printlnDebug("\nVerificando solicitação de prova ...");
+    printlnDebug("\nChecking Proof Request...");
 
     if (ariesController.getPresentation(presentationExchangeId).getVerified()) {
-      printlnDebug("\nCredencial verificada!\n");
+      printlnDebug("\nCredential Verified!\n");
     } else {
-      System.err.println("\nCredencial não verificada!\n");
+      System.err.println("\nUnverified Credential!\n");
     }
   }
 
+  /* 
+   * Receiving connection invitation from another aries agent.
+   */
   public void receiveInvitation(JsonObject invitationJson) throws IOException {
     receiveInvitation(ariesController, invitationJson);
   }
@@ -419,17 +386,17 @@ public class ControllerImpl implements Controller {
   private void receiveInvitation(AriesController ariesController, JsonObject invitationJson) throws IOException {
     Invitation invitationObj = new Invitation(invitationJson);
 
-    printlnDebug("\nRecebendo convite de conexao...");
+    printlnDebug("\nReceiving Connection Invitation...");
 
     ConnectionRecord connectionRecord = ariesController.receiveInvitation(invitationObj);
 
-    printlnDebug("\nConexao:\n" + connectionRecord.toString());
+    printlnDebug("\nConnection:\n" + connectionRecord.toString());
   }
 
   /**
-   * Adiciona um URI na lista de URIs.
+   * Adds a URI to the URI list.
    *
-   * @param uri String - URI que deseja adicionar.
+   * @param uri String - URI you want to add.
    */
   @Override
   public void addNodeUri(String uri) {
@@ -442,9 +409,9 @@ public class ControllerImpl implements Controller {
   }
 
   /**
-   * Remove uma URI na lista de URIs.
+   * Removes a URI from the URI list.
    *
-   * @param uri String - URI que deseja remover.
+   * @param uri String - URI you want to remove.
    */
   @Override
   public void removeNodeUri(String uri) {
@@ -462,9 +429,9 @@ public class ControllerImpl implements Controller {
   }
 
   /**
-   * Retorna a posição de um URI na lista de URIs
+   * Returns the position of a URI in the list of URIs.
    *
-   * @param uri String - URI que deseja a posição.
+   * @param uri String - URI you want the position.
    * @return int
    */
   private int findNodeUri(String uri) {
@@ -478,7 +445,7 @@ public class ControllerImpl implements Controller {
   }
 
   /**
-   * Retorna a lista de URIs dos nós conectados.
+   * Returns the list of URIs of connected nodes.
    *
    * @return List
    */
@@ -488,7 +455,7 @@ public class ControllerImpl implements Controller {
   }
 
   /**
-   * Retorna a quantidade de nós conectados.
+   * Returns the number of connected nodes.
    *
    * @return String
    */
@@ -498,20 +465,20 @@ public class ControllerImpl implements Controller {
   }
 
   /**
-   * Exibe a URI dos nós que estão conectados.
+   * Displays the URI of nodes that are connected.
    */
   public void showNodesConnected() {
     if (this.getNodeUriList().size() == 0) {
       printlnDebug(
-        "+---- Nodes URI Connected ----+\n" + 
+        "\n+---- Nodes URI Connected ----+\n" + 
         "        empty" + 
-        "\n+----------------------------+"
+        "\n+----------------------------+\n"
       );
     } else {
       printlnDebug(
-        "+---- Nodes URI Connected ----+\n" + 
+        "\n+---- Nodes URI Connected ----+\n" + 
         this.getNodeUriList() + 
-        "\n+----------------------------+"
+        "\n+----------------------------+\n"
       );
     }
   }
@@ -555,7 +522,7 @@ public class ControllerImpl implements Controller {
   }
 
   /**
-   * Verifica se o gateway possui filhos.
+   * Checks if the gateway has children.
    *
    * @return boolean
    */
