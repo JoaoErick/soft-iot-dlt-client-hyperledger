@@ -260,22 +260,42 @@ public class ControllerImpl implements Controller {
 
   private void issueCredentialV1(AriesController ariesController, JsonObject jsonProperties) throws IOException {
     printlnDebug("1");
+
     String value = jsonProperties.get("value").getAsString();
     String connectionId = jsonProperties.get("connectionId").getAsString();
+
     printlnDebug("2");
+
     CredentialDefinition credentialDef = ariesController.getCredentialDefinitionById(
       ariesController.getCredentialDefinitionsCreated().getCredentialDefinitionIds().get(0)); //TODO: colocar dinâmico
+
     printlnDebug("3");
+
+    // Collect values of attributes
+    printlnDebug("Informe...");
+
+    Map<String, String> values = new HashMap<>();
+
+    for (String attr : credentialDefinition.getSchema().getAttributes()) {
+        values.put(attr, value);
+    }
+
     // Creating credencial
     Boolean autoRemove = false;
     Credential credential = new Credential(credentialDef, autoRemove);
-    credential.addValue("idNode", value);
+    credential.addValues(values);
+
     printlnDebug("4");
+
     // Issuing credential
     printlnDebug("Issuing credential...");
     printlnDebug("---" + connectionId);
 
-    ariesController.issueCredentialV1(connectionId, credential);
+    ConnectionRecord connectionRecord = ariesController.getConnections().get(0);
+
+    ariesController.issueCredentialV1(connectionRecord.getConnectionId(), credential);
+
+    printlnDebug("5");
 
     printlnDebug("Credential ID: " + credential.getId());
 
