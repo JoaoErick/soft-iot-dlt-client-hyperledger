@@ -92,7 +92,7 @@ public interface Controller {
   /**
    * @param invitationJson
    */
-  public void receiveInvitation(JsonObject invitationJson) throws IOException;
+  public void receiveInvitation(String nodeUri, JsonObject invitationJson) throws IOException;
 
   /**
    * 

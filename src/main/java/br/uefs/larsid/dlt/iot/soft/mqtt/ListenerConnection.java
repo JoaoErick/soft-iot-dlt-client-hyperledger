@@ -17,7 +17,7 @@ public class ListenerConnection implements IMqttMessageListener {
   /*------------------------------ Constantes ------------------------------*/
   private static final String CONNECT = "SYN";
   private static final String DISCONNECT = "FIN";
-  private static final int TIMEOUT_IN_SECONDS = 25;
+  private static final int TIMEOUT_IN_SECONDS = 10;
   private static final int QOS = 1;
   private static Logger log = Logger.getLogger(ListenerConnection.class.getName());
   /*-------------------------------------------------------------------------*/
@@ -70,37 +70,28 @@ public class ListenerConnection implements IMqttMessageListener {
 
         /* Add new URI gateway */
         String nodeUri = jsonProperties.get("nodeUri").getAsString();
-        String connectionId = jsonProperties.get("connectionId").getAsString();
-
-        this.controllerImpl.addConnectionIdNodes(nodeUri, connectionId);
-
         this.controllerImpl.addNodeUri(nodeUri);
 
         /* Receive Connection Invitation */
         jsonProperties.remove("nodeUri");
-        jsonProperties.remove("connectionId");
-        
-        this.controllerImpl.receiveInvitation(jsonProperties);
+
+        this.controllerImpl.receiveInvitation(nodeUri, jsonProperties);
         printlnDebug("Invitation Accepted!");
-        printlnDebug("\nReceived Connection Id: " + this.controllerImpl.getConnectionIdNodes().get(nodeUri));
+
+        /* Get Connection Id */
+        String connectionId = this.controllerImpl.getConnectionIdNodes().get(nodeUri);
+        printlnDebug("Received Connection Id: " + connectionId);
         
         /* Create JSON to Issue Credential */
         JsonObject jsonIssueCredential = new JsonObject();
-        jsonIssueCredential.addProperty("value", nodeUri.split(":")[0]);
+        jsonIssueCredential.addProperty("value", nodeUri);
         jsonIssueCredential.addProperty("connectionId", connectionId);
-
-        /* Waiting time for the connection between agents to become active */
-        long end = System.currentTimeMillis() + TIMEOUT_IN_SECONDS * 1000;
-
-        while (System.currentTimeMillis() < end) {}
-
-        printlnDebug("\nJSON of Credential Issuance: " + jsonIssueCredential.getAsString());
 
         /* Issue Credential */
         this.controllerImpl.issueCredentialV1(jsonIssueCredential);
 
         /* Waiting time for the credential to be received */
-        end = System.currentTimeMillis() + TIMEOUT_IN_SECONDS * 1000;
+        long end = System.currentTimeMillis() + TIMEOUT_IN_SECONDS * 1000;
 
         while (System.currentTimeMillis() < end) {}
 

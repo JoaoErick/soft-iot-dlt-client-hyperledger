@@ -103,7 +103,7 @@ public class ControllerImpl implements Controller {
       int idTag = 1;
 
       List<String> attributes = new ArrayList<>();
-      attributes.add("id");
+      attributes.add("idNode");
 
       schema = new Schema(("Schema_" + idSchema), (idSchema++ + ".0"));
       schema.addAttributes(attributes);
@@ -115,7 +115,7 @@ public class ControllerImpl implements Controller {
       Boolean autoRemove = false;
       Credential credential = new Credential(credentialDefinition, autoRemove);
       Map<String, String> values = new HashMap<>();
-      values.put("id", "10.10.10.10");
+      values.put("idNode", "10.10.10.10:1883");
       credential.addValues(values);
 
     } catch (IOException e) {
@@ -126,7 +126,7 @@ public class ControllerImpl implements Controller {
     String name = "Prove que é um gateway válido?";
     String comment = "É um gateway válido?";
     String version = "1.0";
-    String nameAttrRestriction = "id";
+    String nameAttrRestriction = "idNode";
     String nameRestriction = "cred_def_id";
     String propertyRestriction = "JU1jTydsRztc8XvjPHboAn:3:CL:63882:tag_1";
 
@@ -214,7 +214,6 @@ public class ControllerImpl implements Controller {
 
     JsonObject jsonInvitation = new Gson().fromJson(json, JsonObject.class);
 
-    jsonInvitation.addProperty("connectionId", createInvitationResponse.getConnectionId());
     jsonInvitation.addProperty("nodeUri", nodeUri);
 
     printlnDebug("Final JSON: " + jsonInvitation.toString() + "\n");
@@ -223,7 +222,7 @@ public class ControllerImpl implements Controller {
   }
 
   /* 
-   * Creating credential definition with attribute "id" that 
+   * Creating credential definition with attribute "idNode" that 
    * represents the IP address of the gateway.
    */
   public String createCredentialDefinition() throws IOException {
@@ -260,24 +259,23 @@ public class ControllerImpl implements Controller {
   }
 
   private void issueCredentialV1(AriesController ariesController, JsonObject jsonProperties) throws IOException {
+    printlnDebug("1");
     String value = jsonProperties.get("value").getAsString();
     String connectionId = jsonProperties.get("connectionId").getAsString();
-
-    // Collecting attribute values
-    Map<String, String> values = new HashMap<>();
-    values.put("id", value);
-
+    printlnDebug("2");
+    CredentialDefinition credentialDef = ariesController.getCredentialDefinitionById(
+      ariesController.getCredentialDefinitionsCreated().getCredentialDefinitionIds().get(0)); //TODO: colocar dinâmico
+    printlnDebug("3");
     // Creating credencial
     Boolean autoRemove = false;
-    Credential credential = new Credential(credentialDefinition, autoRemove);
-    credential.addValues(values);
-
-    ConnectionRecord connectionRecord = ariesController.getConnection(connectionId);
-
+    Credential credential = new Credential(credentialDef, autoRemove);
+    credential.addValue("idNode", value);
+    printlnDebug("4");
     // Issuing credential
-    printlnDebug("\nIssuing credential...");
+    printlnDebug("Issuing credential...");
+    printlnDebug("---" + connectionId);
 
-    ariesController.issueCredentialV1(connectionRecord.getConnectionId(), credential);
+    ariesController.issueCredentialV1(connectionId, credential);
 
     printlnDebug("Credential ID: " + credential.getId());
 
@@ -323,20 +321,20 @@ public class ControllerImpl implements Controller {
     String nameRestriction = "cred_def_id";
     String propertyRestriction = "";
 
-    nameAttrRestriction = credentialDefinition.getSchema().getAttributes().get(0);
-    propertyRestriction = credentialDefinition.getId();
+    CredentialDefinition credentialDef = ariesController.getCredentialDefinitionById(
+      ariesController.getCredentialDefinitionsCreated().getCredentialDefinitionIds().get(0));
+    nameAttrRestriction = credentialDef.getSchema().getAttributes().get(0);
+    propertyRestriction = credentialDef.getId();
 
     AttributeRestriction attributeRestriction = new AttributeRestriction(nameAttrRestriction, nameRestriction, propertyRestriction);
     List<AttributeRestriction> attributesRestrictions = new ArrayList<>();
     attributesRestrictions.add(attributeRestriction);
 
-    ConnectionRecord connectionRecord = ariesController.getConnection(connectionId);
-
     /* Start timestamp of test request */
     Timestamp timeSend = new Timestamp(System.currentTimeMillis());
 
     String presentationExchangeId =
-    ariesController.sendRequestPresentationRequest(name, comment, version, connectionRecord.getConnectionId(), attributesRestrictions);
+    ariesController.sendRequestPresentationRequest(name, comment, version, connectionId, attributesRestrictions);
 
     printlnDebug("\nSubmitting proof request...");
 
@@ -379,16 +377,19 @@ public class ControllerImpl implements Controller {
   /* 
    * Receiving connection invitation from another aries agent.
    */
-  public void receiveInvitation(JsonObject invitationJson) throws IOException {
-    receiveInvitation(ariesController, invitationJson);
+  public void receiveInvitation(String nodeUri, JsonObject invitationJson) throws IOException {
+    receiveInvitation(ariesController, nodeUri, invitationJson);
   }
 
-  private void receiveInvitation(AriesController ariesController, JsonObject invitationJson) throws IOException {
+  private void receiveInvitation(AriesController ariesController, String nodeUri, JsonObject invitationJson) throws IOException {
     Invitation invitationObj = new Invitation(invitationJson);
 
-    printlnDebug("\nReceiving Connection Invitation...");
+    printlnDebug("Receiving Connection Invitation...");
 
     ConnectionRecord connectionRecord = ariesController.receiveInvitation(invitationObj);
+
+    /* Add new Connection Id of URI gateway */
+    this.addConnectionIdNodes(nodeUri, connectionRecord.getConnectionId());
 
     printlnDebug("\nConnection:\n" + connectionRecord.toString());
   }
@@ -470,13 +471,13 @@ public class ControllerImpl implements Controller {
   public void showNodesConnected() {
     if (this.getNodeUriList().size() == 0) {
       printlnDebug(
-        "\n+---- Nodes URI Connected ----+\n" + 
+        "\n\n+---- Nodes URI Connected ----+\n" + 
         "        empty" + 
         "\n+----------------------------+\n"
       );
     } else {
       printlnDebug(
-        "\n+---- Nodes URI Connected ----+\n" + 
+        "\n\n+---- Nodes URI Connected ----+\n" + 
         this.getNodeUriList() + 
         "\n+----------------------------+\n"
       );
