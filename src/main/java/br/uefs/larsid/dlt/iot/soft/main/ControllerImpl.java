@@ -53,7 +53,6 @@ public class ControllerImpl implements Controller {
   private boolean hasNodes;
   private Map<String, String> connectionIdNodes = new LinkedHashMap<String, String>();
   private List<String> nodesUris;
-  private JsonObject sensorsTypesJSON = new JsonObject();
 
   public static AriesController ariesController;
   public static Schema schema;
@@ -95,8 +94,6 @@ public class ControllerImpl implements Controller {
     /* Configure Schema and Credential */
     try {
       printlnDebug("EndPoint: " + ariesController.getEndPoint());
-      /* TODO: Criar uma classe para servir de base para implementação de 
-      credenciais especificas */
 
       int idSchema = ariesController.getSchemasCreated().size() + 11; // precisa automatizar o número baseado na
                                                                       // persistencia
@@ -105,35 +102,16 @@ public class ControllerImpl implements Controller {
       List<String> attributes = new ArrayList<>();
       attributes.add("idNode");
 
+      /* Creating a schema */
       schema = new Schema(("Schema_" + idSchema), (idSchema++ + ".0"));
       schema.addAttributes(attributes);
 
+      /* Creating a credential definition */
       Boolean revocable = false;
-      int revocableSize = 1000;
       credentialDefinition = new CredentialDefinition(("tag_" + idTag++), revocable, 1000, schema);
-
-      Boolean autoRemove = false;
-      Credential credential = new Credential(credentialDefinition, autoRemove);
-      Map<String, String> values = new HashMap<>();
-      values.put("idNode", "10.10.10.10:1883");
-      credential.addValues(values);
-
     } catch (IOException e) {
       e.printStackTrace();
     }
-
-    /* Creating a proof request */
-    String name = "Prove que é um gateway válido?";
-    String comment = "É um gateway válido?";
-    String version = "1.0";
-    String nameAttrRestriction = "idNode";
-    String nameRestriction = "cred_def_id";
-    String propertyRestriction = "JU1jTydsRztc8XvjPHboAn:3:CL:63882:tag_1";
-
-    AttributeRestriction attributeRestriction = new AttributeRestriction(nameAttrRestriction, nameRestriction,
-        propertyRestriction);
-    List<AttributeRestriction> attributesRestrictions = new ArrayList<>();
-    attributesRestrictions.add(attributeRestriction);
 
     /*
      * Fog: Configures the credential definition.
@@ -181,9 +159,13 @@ public class ControllerImpl implements Controller {
     this.MQTTClientUp.disconnect();
   }
 
-  /* 
+  /**
    * Sends the connection JSON to the gateway present in the Fog.
-   */
+   * 
+   * @param nodeUri - URI of the node want to connect.
+   * @throws IOException
+   * @throws WriterException
+    */
   public void sendJSONInvitation(String nodeUri) throws IOException, WriterException {
     JsonObject jsonResult = this.createInvitation(nodeUri);
 
@@ -192,14 +174,21 @@ public class ControllerImpl implements Controller {
     this.MQTTClientUp.publish(CONNECT, payload, QOS);
   }
 
-  /* 
-   * Creating connection invitation.
-   */
   public JsonObject createInvitation(String nodeUri) throws IOException, WriterException {
     int idConvite = ariesController.getConnections().size();
     return createInvitation(ariesController, ("Convite_" + idConvite++), nodeUri);
   }
 
+  /**
+   * Creating connection invitation.
+   * 
+   * @param ariesController - Aries controller with agent interaction methods.
+   * @param label - Connection invite label.
+   * @param nodeUri - URI of the node want to connect.
+   * @return JsonObject
+   * @throws IOException
+   * @throws WriterException
+    */
   private JsonObject createInvitation(AriesController ariesController, String label, String nodeUri)
       throws IOException, WriterException {
     printlnDebug("Criando convite de conexao...");
@@ -221,14 +210,20 @@ public class ControllerImpl implements Controller {
     return jsonInvitation;
   }
 
-  /* 
-   * Creating credential definition with attribute "idNode" that 
-   * represents the IP address of the gateway.
-   */
   public String createCredentialDefinition() throws IOException {
     return createCredentialDefinition(ariesController, schema, credentialDefinition);
   }
 
+  /**
+   * Creating credential definition with attribute "idNode" that 
+   * represents the IP address of the gateway.
+   * 
+   * @param ariesController - Aries controller with agent interaction methods.
+   * @param schema - Schema to be created.
+   * @param credentialDefinition - Credential Definition to be created.
+   * @return String
+   * @throws IOException
+    */
   private String createCredentialDefinition(AriesController ariesController, Schema schema,
       CredentialDefinition credentialDefinition) throws IOException {
     printlnDebug("Creating Schema...");
@@ -251,29 +246,25 @@ public class ControllerImpl implements Controller {
     return credentialDefinition.getId();
   }
 
-  /* 
-   * Issuing a credential to a connected gateway.
-   */
   public void issueCredentialV1(JsonObject jsonProperties) throws IOException {
     issueCredentialV1(ariesController, jsonProperties);
   }
 
+  /**
+   * Issuing a credential to a connected gateway.
+   * 
+   * @param ariesController - Aries controller with agent interaction methods.
+   * @param jsonProperties - JSON with the properties for sending the credential.
+   * @throws IOException
+    */
   private void issueCredentialV1(AriesController ariesController, JsonObject jsonProperties) throws IOException {
-    printlnDebug("1");
-
     String value = jsonProperties.get("value").getAsString();
     String connectionId = jsonProperties.get("connectionId").getAsString();
-
-    printlnDebug("2");
 
     CredentialDefinition credentialDef = ariesController.getCredentialDefinitionById(
       ariesController.getCredentialDefinitionsCreated().getCredentialDefinitionIds().get(0)); //TODO: colocar dinâmico
 
-    printlnDebug("3");
-
     // Collect values of attributes
-    printlnDebug("Informe...");
-
     Map<String, String> values = new HashMap<>();
 
     for (String attr : credentialDefinition.getSchema().getAttributes()) {
@@ -285,52 +276,56 @@ public class ControllerImpl implements Controller {
     Credential credential = new Credential(credentialDef, autoRemove);
     credential.addValues(values);
 
-    printlnDebug("4");
-
     // Issuing credential
     printlnDebug("Issuing credential...");
-    printlnDebug("---" + connectionId);
+    printlnDebug("Connection Id: " + connectionId);
+    printlnDebug("Value: " + value);
 
-    ConnectionRecord connectionRecord = ariesController.getConnections().get(0);
+    ariesController.issueCredentialV1(connectionId, credential);
 
-    ariesController.issueCredentialV1(connectionRecord.getConnectionId(), credential);
-
-    printlnDebug("5");
-
-    printlnDebug("Credential ID: " + credential.getId());
-
-    printlnDebug("\nIssued Credential!\n");
+    printlnDebug("Issued Credential!\n");
   }
 
-  private static void listConnections(AriesController ariesController) throws IOException {
-    System.out.println("\nConsultando conexões ...");
+  /**
+   * Makes the list of agent connections.
+   * 
+   * @param ariesController - Aries controller with agent interaction methods.
+   * @throws IOException
+    */
+  private void listConnections(AriesController ariesController) throws IOException {
+   printlnDebug("Consultando conexões ...");
 
     List<ConnectionRecord> connectionsRecords = ariesController.getConnections();
 
-    System.out.println("\nListando conexões...");
+   printlnDebug("Listando conexões...");
     for (ConnectionRecord connectionRecord : connectionsRecords) {
-      System.out.println("\nConexão ID: " + connectionRecord.getConnectionId());
-      System.out.println("State: " + connectionRecord.getState());
-      System.out.println("RFC State: " + connectionRecord.getRfc23Sate());
-      System.out.println("Alias: " + connectionRecord.getAlias());
-      System.out.println("Invitation Key: " + connectionRecord.getInvitationKey());
-      System.out.println("Their Label: " + connectionRecord.getTheirLabel());
-      System.out.println("Their DID: " + connectionRecord.getTheirDid());
-      System.out.println("Created At: " + connectionRecord.getCreatedAt());
-      System.out.println("Updated At: " + connectionRecord.getUpdatedAt());
-      System.out.println("Msg error: " + connectionRecord.getErrorMsg());
+     printlnDebug("\nConexão ID: " + connectionRecord.getConnectionId());
+     printlnDebug("State: " + connectionRecord.getState());
+     printlnDebug("RFC State: " + connectionRecord.getRfc23Sate());
+     printlnDebug("Alias: " + connectionRecord.getAlias());
+     printlnDebug("Invitation Key: " + connectionRecord.getInvitationKey());
+     printlnDebug("Their Label: " + connectionRecord.getTheirLabel());
+     printlnDebug("Their DID: " + connectionRecord.getTheirDid());
+     printlnDebug("Created At: " + connectionRecord.getCreatedAt());
+     printlnDebug("Updated At: " + connectionRecord.getUpdatedAt());
+     printlnDebug("Msg error: " + connectionRecord.getErrorMsg());
     }
 
-    System.out.println("\nFim da lista de conexões!\n");
+   printlnDebug("\nFim da lista de conexões!\n");
   }
 
-  /* 
-   * Send presentation Request to gateways.
-   */
   public void sendRequestPresentationRequest(String connectionId) throws IOException, InterruptedException {
     sendRequestPresentationRequest(ariesController, connectionId);
   }
 
+  /**
+   * Send presentation Request to gateways.
+   * 
+   * @param ariesController - Aries controller with agent interaction methods.
+   * @param connectionId - Connection id to send the request
+   * @throws IOException
+   * @throws InterruptedException
+    */
   private void sendRequestPresentationRequest(AriesController ariesController, String connectionId) throws IOException, InterruptedException {
     
     /* Creating a proof request */
@@ -356,51 +351,63 @@ public class ControllerImpl implements Controller {
     String presentationExchangeId =
     ariesController.sendRequestPresentationRequest(name, comment, version, connectionId, attributesRestrictions);
 
-    printlnDebug("\nSubmitting proof request...");
+    printlnDebug("Submitting proof request...");
 
     PresentationExchangeRecord presentationExchangeRecord;
 
     do {
       presentationExchangeRecord = ariesController.getPresentation(presentationExchangeId);
-      printlnDebug("\nUpdateAt: " + presentationExchangeRecord.getUpdatedAt());
+      printlnDebug("UpdateAt: " + presentationExchangeRecord.getUpdatedAt());
       printlnDebug("Presentation: " + presentationExchangeRecord.getPresentation());
       printlnDebug("Verified: " + presentationExchangeRecord.isVerified());
       printlnDebug("State: " + presentationExchangeRecord.getState());
-      printlnDebug("Auto Presentation: " + presentationExchangeRecord.getAutoPresent());
+      printlnDebug("Auto Presentation: " + presentationExchangeRecord.getAutoPresent()+ "\n");
     } while
     (!presentationExchangeRecord.getState().equals(PresentationExchangeState.REQUEST_RECEIVED)
     &&
     !presentationExchangeRecord.getState().equals(PresentationExchangeState.VERIFIED));
 
-    printlnDebug("\nProof Request Received!\n");
+    printlnDebug("Proof Request Received!\n");
 
     verifyProofPresentation(ariesController, presentationExchangeId);
 
     Timestamp timeReceive = new Timestamp(System.currentTimeMillis());
-    printlnDebug("\nCalculate timestamp...");
+    printlnDebug("Calculate timestamp...");
     printlnDebug("Initial Time: " + timeSend);
     printlnDebug("Final Time: " + timeReceive);
-    printlnDebug("Difference: " + (timeReceive.getTime() -
-    timeSend.getTime()));
+    printlnDebug("Difference: " + (timeReceive.getTime() - timeSend.getTime()));
   }
 
+  /**
+   * Checking proof presentation.
+   * 
+   * @param ariesController - Aries controller with agent interaction methods.
+   * @param presentationExchangeId - Id of the Presentation Exchange that was performed.
+   * @throws IOException
+   * @throws InterruptedException
+    */
   private void verifyProofPresentation(AriesController ariesController, String presentationExchangeId) throws IOException, InterruptedException {
-    printlnDebug("\nChecking Proof Request...");
+    printlnDebug("Checking Proof Request...");
 
     if (ariesController.getPresentation(presentationExchangeId).getVerified()) {
-      printlnDebug("\nCredential Verified!\n");
+      printlnDebug("Credential Verified!\n");
     } else {
-      System.err.println("\nUnverified Credential!\n");
+      System.err.println("Unverified Credential!\n");
     }
   }
 
-  /* 
-   * Receiving connection invitation from another aries agent.
-   */
   public void receiveInvitation(String nodeUri, JsonObject invitationJson) throws IOException {
     receiveInvitation(ariesController, nodeUri, invitationJson);
   }
 
+  /**
+   * Receiving connection invitation from another aries agent.
+   * 
+   * @param ariesController - Aries controller with agent interaction methods.
+   * @param nodeUri - URI of the node want to connect.
+   * @param invitationJson - JSON with connection properties.
+   * @throws IOException
+    */
   private void receiveInvitation(AriesController ariesController, String nodeUri, JsonObject invitationJson) throws IOException {
     Invitation invitationObj = new Invitation(invitationJson);
 
@@ -411,7 +418,7 @@ public class ControllerImpl implements Controller {
     /* Add new Connection Id of URI gateway */
     this.addConnectionIdNodes(nodeUri, connectionRecord.getConnectionId());
 
-    printlnDebug("\nConnection:\n" + connectionRecord.toString());
+    printlnDebug("\n\nConnection:\n" + connectionRecord.toString() + "\n");
   }
 
   /**
