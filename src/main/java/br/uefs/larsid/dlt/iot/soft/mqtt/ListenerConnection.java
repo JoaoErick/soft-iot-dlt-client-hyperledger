@@ -1,5 +1,6 @@
 package br.uefs.larsid.dlt.iot.soft.mqtt;
 
+import br.uefs.larsid.dlt.iot.soft.main.ControllerImpl;
 import br.uefs.larsid.dlt.iot.soft.services.Controller;
 
 import java.util.List;
@@ -14,7 +15,7 @@ import java.util.logging.Logger;
 
 public class ListenerConnection implements IMqttMessageListener {
 
-  /*------------------------------ Constantes ------------------------------*/
+  /*------------------------------ Constants ------------------------------*/
   private static final String CONNECT = "SYN";
   private static final String DISCONNECT = "FIN";
   private static final int TIMEOUT_IN_SECONDS = 10;
@@ -28,14 +29,14 @@ public class ListenerConnection implements IMqttMessageListener {
   private MQTTClient MQTTClientUp;
 
   /**
-   * Método Construtor.
+   * Constructor Method.
    *
-   * @param controllerImpl Controller - Controller que fará uso desse Listener.
-   * @param MQTTClientHost MQTTClient - Cliente MQTT do gateway inferior.
-   * @param MQTTClientUp   MQTTClient - Cliente MQTT do gateway superior.
-   * @param topics         String[] - Tópicos que serão assinados.
-   * @param qos            int - Qualidade de serviço do tópico que será ouvido.
-   * @param debugModeValue boolean - Modo para debugar o código.
+   * @param controllerImpl Controller - Controller that will make use of this Listener.
+   * @param MQTTClientHost MQTTClient - Bottom Gateway MQTT Client.
+   * @param MQTTClientUp   MQTTClient - Upper Gateway MQTT Client.
+   * @param topics         String[] - Topics that will be subscribed.
+   * @param qos            int - Quality of service of the topic that will be heard.
+   * @param debugModeValue boolean - Mode to debug the code.
    */
   public ListenerConnection(
       Controller controllerImpl,
@@ -62,7 +63,7 @@ public class ListenerConnection implements IMqttMessageListener {
 
     printlnDebug("==== Receive Connect Request ====");
 
-    /* Verificar qual o tópico recebido. */
+    /* Check which topic was received. */
     switch (params[0]) {
       case CONNECT:
         printlnDebug("CONNECT...");
@@ -81,6 +82,18 @@ public class ListenerConnection implements IMqttMessageListener {
         /* Get Connection Id */
         String connectionId = this.controllerImpl.getConnectionIdNodes().get(nodeUri);
         printlnDebug("Received Connection Id: " + connectionId);
+
+        /* Ensuring that connection between agents has been completed */
+        String state;
+        boolean flag = false;
+        printlnDebug("Waiting for the connection to become active...");
+        while (flag == false) {
+          state = ControllerImpl.ariesController.getConnection(connectionId).getState().toString();
+          if (state.equals("ACTIVE")) {
+            flag = true;
+          }
+        }
+        printlnDebug("Connection established!");
         
         /* Create JSON to Issue Credential */
         JsonObject jsonIssueCredential = new JsonObject();
@@ -105,26 +118,6 @@ public class ListenerConnection implements IMqttMessageListener {
 
         break;
     }
-  }
-
-  /* Envia uma mensagem para um tópico especificado em que os nós inferiores estão assinados. */
-  private void publishToDown(String topicDown, byte[] messageDown) {
-    List<String> nodesUris = this.controllerImpl.getNodeUriList();
-    String user = this.MQTTClientUp.getUserName();
-    String password = this.MQTTClientUp.getPassword();
-
-    String uri[] = nodesUris.get(nodesUris.size() - 1).split(":");
-
-    MQTTClient MQTTClientDown = new MQTTClient(
-        this.debugModeValue,
-        uri[0],
-        uri[1],
-        user,
-        password);
-
-    MQTTClientDown.connect();
-    MQTTClientDown.publish(topicDown, messageDown, QOS);
-    MQTTClientDown.disconnect();
   }
 
   private void printlnDebug(String str) {
