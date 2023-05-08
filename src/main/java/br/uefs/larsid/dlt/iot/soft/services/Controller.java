@@ -7,8 +7,6 @@ import java.util.Map;
 import com.google.gson.JsonObject;
 import com.google.zxing.WriterException;
 
-import br.uefs.larsid.dlt.iot.soft.controller.AriesController;
-
 public interface Controller {
 
   /**

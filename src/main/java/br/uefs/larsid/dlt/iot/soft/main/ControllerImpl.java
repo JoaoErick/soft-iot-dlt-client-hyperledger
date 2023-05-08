@@ -29,6 +29,10 @@ import org.hyperledger.aries.api.present_proof.PresentationExchangeRecord;
 import org.hyperledger.aries.api.present_proof.PresentationExchangeState;
 import org.hyperledger.aries.api.schema.SchemaSendResponse;
 
+/**
+ *
+ * @author João Erick Barbosa
+ */
 public class ControllerImpl implements Controller {
 
   /*------------------------------- Constants -------------------------------*/
@@ -83,7 +87,6 @@ public class ControllerImpl implements Controller {
       new ListenerConnection(
           this,
           MQTTClientHost,
-          MQTTClientUp,
           topicsConnection,
           QOS,
           debugModeValue);
@@ -93,7 +96,7 @@ public class ControllerImpl implements Controller {
 
     /* Configure Schema and Credential */
     try {
-      printlnDebug("EndPoint: " + ariesController.getEndPoint());
+      printlnDebug("EndPoint: " + ariesController.getEndPoint() + "\n");
 
       int idSchema = ariesController.getSchemasCreated().size() + 11; // precisa automatizar o número baseado na
                                                                       // persistencia
@@ -120,7 +123,8 @@ public class ControllerImpl implements Controller {
      */
     if (hasNodes) {
       try {
-        this.createCredentialDefinition();
+        String credentialDefinitionId = this.createCredentialDefinition();
+        credentialDefinition.setId(credentialDefinitionId);
       } catch (IOException e) {
         printlnDebug("\n(!) Error to configure Crendential Definition\n");
         e.printStackTrace();
@@ -191,7 +195,7 @@ public class ControllerImpl implements Controller {
     */
   private JsonObject createInvitation(AriesController ariesController, String label, String nodeUri)
       throws IOException, WriterException {
-    printlnDebug("Criando convite de conexao...");
+    printlnDebug("Creating connection invitation...");
 
     CreateInvitationResponse createInvitationResponse = ariesController.createInvitation(label);
 
@@ -199,7 +203,7 @@ public class ControllerImpl implements Controller {
 
     printlnDebug("Json Invitation: " + json);
 
-    printlnDebug("Invitation created!");
+    printlnDebug("Invitation created!\n");
 
     JsonObject jsonInvitation = new Gson().fromJson(json, JsonObject.class);
 
@@ -233,7 +237,7 @@ public class ControllerImpl implements Controller {
 
     printlnDebug("Schema ID: " + schema.getId());
 
-    printlnDebug("Schema Created!");
+    printlnDebug("Schema Created!\n");
 
     printlnDebug("Creating Credential Definition ...");
 
@@ -261,8 +265,7 @@ public class ControllerImpl implements Controller {
     String value = jsonProperties.get("value").getAsString();
     String connectionId = jsonProperties.get("connectionId").getAsString();
 
-    CredentialDefinition credentialDef = ariesController.getCredentialDefinitionById(
-      ariesController.getCredentialDefinitionsCreated().getCredentialDefinitionIds().get(0)); //TODO: colocar dinâmico
+    CredentialDefinition credentialDef = ariesController.getCredentialDefinitionById(credentialDefinition.getId());
 
     // Collect values of attributes
     Map<String, String> values = new HashMap<>();
@@ -292,27 +295,27 @@ public class ControllerImpl implements Controller {
    * @param ariesController - Aries controller with agent interaction methods.
    * @throws IOException
     */
-  private void listConnections(AriesController ariesController) throws IOException {
-   printlnDebug("Consultando conexões ...");
+  // private void listConnections(AriesController ariesController) throws IOException {
+  //  printlnDebug("Consultando conexões ...");
 
-    List<ConnectionRecord> connectionsRecords = ariesController.getConnections();
+  //   List<ConnectionRecord> connectionsRecords = ariesController.getConnections();
 
-   printlnDebug("Listando conexões...");
-    for (ConnectionRecord connectionRecord : connectionsRecords) {
-     printlnDebug("\nConexão ID: " + connectionRecord.getConnectionId());
-     printlnDebug("State: " + connectionRecord.getState());
-     printlnDebug("RFC State: " + connectionRecord.getRfc23Sate());
-     printlnDebug("Alias: " + connectionRecord.getAlias());
-     printlnDebug("Invitation Key: " + connectionRecord.getInvitationKey());
-     printlnDebug("Their Label: " + connectionRecord.getTheirLabel());
-     printlnDebug("Their DID: " + connectionRecord.getTheirDid());
-     printlnDebug("Created At: " + connectionRecord.getCreatedAt());
-     printlnDebug("Updated At: " + connectionRecord.getUpdatedAt());
-     printlnDebug("Msg error: " + connectionRecord.getErrorMsg());
-    }
+  //  printlnDebug("Listando conexões...");
+  //   for (ConnectionRecord connectionRecord : connectionsRecords) {
+  //    printlnDebug("\nConexão ID: " + connectionRecord.getConnectionId());
+  //    printlnDebug("State: " + connectionRecord.getState());
+  //    printlnDebug("RFC State: " + connectionRecord.getRfc23Sate());
+  //    printlnDebug("Alias: " + connectionRecord.getAlias());
+  //    printlnDebug("Invitation Key: " + connectionRecord.getInvitationKey());
+  //    printlnDebug("Their Label: " + connectionRecord.getTheirLabel());
+  //    printlnDebug("Their DID: " + connectionRecord.getTheirDid());
+  //    printlnDebug("Created At: " + connectionRecord.getCreatedAt());
+  //    printlnDebug("Updated At: " + connectionRecord.getUpdatedAt());
+  //    printlnDebug("Msg error: " + connectionRecord.getErrorMsg());
+  //   }
 
-   printlnDebug("\nFim da lista de conexões!\n");
-  }
+  //  printlnDebug("\nFim da lista de conexões!\n");
+  // }
 
   public void sendRequestPresentationRequest(String connectionId) throws IOException, InterruptedException {
     sendRequestPresentationRequest(ariesController, connectionId);
@@ -336,8 +339,7 @@ public class ControllerImpl implements Controller {
     String nameRestriction = "cred_def_id";
     String propertyRestriction = "";
 
-    CredentialDefinition credentialDef = ariesController.getCredentialDefinitionById(
-      ariesController.getCredentialDefinitionsCreated().getCredentialDefinitionIds().get(0));
+    CredentialDefinition credentialDef = ariesController.getCredentialDefinitionById(credentialDefinition.getId());
     nameAttrRestriction = credentialDef.getSchema().getAttributes().get(0);
     propertyRestriction = credentialDef.getId();
 

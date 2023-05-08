@@ -3,8 +3,6 @@ package br.uefs.larsid.dlt.iot.soft.mqtt;
 import br.uefs.larsid.dlt.iot.soft.main.ControllerImpl;
 import br.uefs.larsid.dlt.iot.soft.services.Controller;
 
-import java.util.List;
-
 import org.eclipse.paho.client.mqttv3.IMqttMessageListener;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 
@@ -13,27 +11,29 @@ import com.google.gson.JsonObject;
 
 import java.util.logging.Logger;
 
+/**
+ *
+ * @author João Erick Barbosa
+ */
 public class ListenerConnection implements IMqttMessageListener {
 
   /*------------------------------ Constants ------------------------------*/
   private static final String CONNECT = "SYN";
   private static final String DISCONNECT = "FIN";
   private static final int TIMEOUT_IN_SECONDS = 10;
-  private static final int QOS = 1;
+  
   private static Logger log = Logger.getLogger(ListenerConnection.class.getName());
   /*-------------------------------------------------------------------------*/
 
   private boolean debugModeValue;
   private Controller controllerImpl;
   private MQTTClient MQTTClientHost;
-  private MQTTClient MQTTClientUp;
 
   /**
    * Constructor Method.
    *
    * @param controllerImpl Controller - Controller that will make use of this Listener.
    * @param MQTTClientHost MQTTClient - Bottom Gateway MQTT Client.
-   * @param MQTTClientUp   MQTTClient - Upper Gateway MQTT Client.
    * @param topics         String[] - Topics that will be subscribed.
    * @param qos            int - Quality of service of the topic that will be heard.
    * @param debugModeValue boolean - Mode to debug the code.
@@ -41,13 +41,11 @@ public class ListenerConnection implements IMqttMessageListener {
   public ListenerConnection(
       Controller controllerImpl,
       MQTTClient MQTTClientHost,
-      MQTTClient MQTTClientUp,
       String[] topics,
       int qos,
       boolean debugModeValue) {
     this.controllerImpl = controllerImpl;
     this.MQTTClientHost = MQTTClientHost;
-    this.MQTTClientUp = MQTTClientUp;
     this.debugModeValue = debugModeValue;
 
     for (String topic : topics) {
