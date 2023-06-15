@@ -1,6 +1,6 @@
 # soft-iot-dlt-client-hyperledger-aries
 
-O `soft-iot-dlt-client-hyperledger-aries` é o _bundle_ genérico que pode atuar tanto na camada _Edge_ quanto na _Fog_. Ele responsável por realizar requisições MQTT para o controlador de um _Aries Agent_.
+O `soft-iot-dlt-client-hyperledger-aries` é o _bundle_ genérico que pode atuar tanto na camada _Edge_ quanto na _Fog_. Ele responsável por enviar requisições HTTP para um _Aries Agent_ como forma de possibilitar a aplicação dos princípios de Identidade Descentralizada em nós de uma rede.
 
 ## Modelo da arquitetura
 
