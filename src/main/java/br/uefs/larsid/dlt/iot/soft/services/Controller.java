@@ -7,105 +7,147 @@ import java.util.Map;
 import com.google.gson.JsonObject;
 import com.google.zxing.WriterException;
 
+import br.uefs.larsid.dlt.iot.soft.model.Device;
+
 public interface Controller {
 
   /**
-   * Retorna a quantidade de nós conectados.
+   * Returns the number of connected nodes.
    *
    * @return String
    */
   int getNodes();
 
   /**
-   * Adiciona um URI na lista de URIs.
+   * Returns the connected devices.
    *
-   * @param uri String - URI que deseja adicionar.
+   * @return String
+   */
+  List<Device> getDevices();
+
+  /**
+   * Adds the devices that were requested to the device list.
+   */
+  void loadConnectedDevices();
+
+  /**
+   * Adds a URI to the URI list.
+   *
+   * @param uri String - URI you want to add.
    */
   public void addNodeUri(String uri);
 
   /**
-   * Remove uma URI na lista de URIs.
+   * Removes a URI from the URI list.
    *
-   * @param uri String - URI que deseja remover.
+   * @param uri String - URI you want to remove.
    */
   public void removeNodeUri(String uri);
 
   /**
-   * Verifica se o gateway possui filhos.
+   * Checks if the gateway has children.
    *
    * @return boolean
    */
   public boolean hasNodes();
 
   /**
-   * Retorna a lista de URIs dos nós conectados.
+   * Returns the list of URIs of connected nodes.
    *
    * @return List
    */
   public List<String> getNodeUriList();
 
   /**
-   * Exibe a URI dos nós que estão conectados.
+   * Displays the URI of nodes that are connected.
    */
   public void showNodesConnected();
 
   /**
-   * Verifica se a definição de credencial já está configurada.
+   * Checks if the credential definition is already configured.
+   * 
    * @return boolean
    */
   public boolean crendentialDefinitionIsConfigured();
 
   /**
-   * Altera o indicador que informa se a definição de credencial já está 
-   * configurada ou não.
+   * Changes the indicator that tells you whether the credential definition 
+   * is already configured or not.
+   * 
+   * @param crendentialDefinitionIsConfigured
    */
   public void setCrendentialDefinitionIsConfigured(boolean crendentialDefinitionIsConfigured);
 
+  /**
+   * Returns a map containing the URI and connection id pair of 
+   * connected nodes.
+   * 
+   * @return Map<String, String>
+   */
   public Map<String, String> getConnectionIdNodes();
 
-  public void addConnectionIdNodes(String nodeUri, String connectionId);
   /**
-   * Adiciona os sensores em um JSON para enviar para a camada superior.
-   *
-   * @param jsonReceived JsonObject - JSON contendo os tipos dos sensores.
+   * Adds the URI and connection id of the connected node.
+   * 
+   * @param nodeUri - URI of the node want to connect.
+   * @param connectionId - Node connection id
    */
-  // public void putSensorsTypes(JsonObject jsonReceived);
+  public void addConnectionIdNodes(String nodeUri, String connectionId);
 
   /**
-   * Retorna um JSON contendo os tipos de sensores disponíveis.
+   * Adds the sensors in a JSON to send to the upper layer.
+   *
+   * @param jsonReceived JsonObject - JSON containing sensor types.
+   */
+  public void putSensorsTypes(JsonObject jsonReceived);
+
+  /**
+   * Returns a JSON containing the available sensor types.
    *
    * @return JsonObject
    */
-  // public JsonObject getSensorsTypesJSON();
+  public JsonObject getSensorsTypesJSON();
 
   /**
-   * Requisita os tipos de sensores de um dispositivo conectado.
+   * Requests sensor types from a connected device.
    *
    * @return List<String>
    */
-  // public List<String> loadSensorsTypes();
+  public List<String> loadSensorsTypes();
 
+  /**
+   * Creating connection invitation.
+   * 
+   * @param nodeUri - URI of the node want to connect.
+   * @return JsonObject
+   * @throws IOException
+   * @throws WriterException
+   */
   public JsonObject createInvitation(String nodeUri) throws IOException, WriterException;
 
   /**
-   * @param invitationJson
+   * Receiving connection invitation from another aries agent.
+   * 
+   * @param nodeUri - URI of the node want to connect.
+   * @param invitationJson - JSON with connection properties.
+   * @throws IOException
    */
   public void receiveInvitation(String nodeUri, JsonObject invitationJson) throws IOException;
 
   /**
+   * Issuing a credential to a connected gateway.
    * 
-   * @param jsonProperties
-   * @throws IOException 
-   * 
+   * @param jsonProperties - JSON with the properties for sending the credential.
+   * @throws IOException
    */
   public void issueCredentialV1(JsonObject jsonProperties) throws IOException;
 
   /**
+   * Send presentation Request to gateways.
    * 
-   * @param connectionId
+   * @param connectionId - Connection id to send the request
    * @throws IOException
-   * @throws InterruptedException 
-   * 
+   * @throws InterruptedException
    */
   public void sendRequestPresentationRequest(String connectionId) throws IOException, InterruptedException;
 }

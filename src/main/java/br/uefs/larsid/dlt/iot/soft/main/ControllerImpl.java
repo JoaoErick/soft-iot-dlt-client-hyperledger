@@ -4,12 +4,19 @@ import br.uefs.larsid.dlt.iot.soft.controller.AriesController;
 import br.uefs.larsid.dlt.iot.soft.model.AttributeRestriction;
 import br.uefs.larsid.dlt.iot.soft.model.Credential;
 import br.uefs.larsid.dlt.iot.soft.model.CredentialDefinition;
+import br.uefs.larsid.dlt.iot.soft.model.Device;
 import br.uefs.larsid.dlt.iot.soft.model.Invitation;
 import br.uefs.larsid.dlt.iot.soft.model.Schema;
+import br.uefs.larsid.dlt.iot.soft.model.Sensor;
 import br.uefs.larsid.dlt.iot.soft.mqtt.ListenerConnection;
+import br.uefs.larsid.dlt.iot.soft.mqtt.ListenerRequest;
 import br.uefs.larsid.dlt.iot.soft.mqtt.MQTTClient;
 import br.uefs.larsid.dlt.iot.soft.services.Controller;
+import br.uefs.larsid.dlt.iot.soft.utils.ClientIoTService;
 
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.zxing.WriterException;
@@ -22,12 +29,15 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
+import java.util.logging.Level;
 
 import org.hyperledger.aries.api.connection.ConnectionRecord;
 import org.hyperledger.aries.api.connection.CreateInvitationResponse;
 import org.hyperledger.aries.api.present_proof.PresentationExchangeRecord;
 import org.hyperledger.aries.api.present_proof.PresentationExchangeState;
 import org.hyperledger.aries.api.schema.SchemaSendResponse;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 /**
  *
@@ -40,9 +50,11 @@ public class ControllerImpl implements Controller {
 
   private static final String CONNECT = "SYN";
   private static final String DISCONNECT = "FIN";
+  private static final String SENSORS_FOG = "SENSORS_FOG";
+  private static final String SENSORS_EDGE = "SENSORS_EDGE";
   /*-------------------------------------------------------------------------*/
 
-  /* ------------------------ Aries Topic constants ------------------------ */
+  /* ------------------------ Aries constants ------------------------ */
   private String AGENT_ADDR;
   private String AGENT_PORT;
   /* ----------------------------------------------------------------------- */
@@ -57,6 +69,9 @@ public class ControllerImpl implements Controller {
   private boolean hasNodes;
   private Map<String, String> connectionIdNodes = new LinkedHashMap<String, String>();
   private List<String> nodesUris;
+  private List<Device> devices;
+  private JsonObject sensorsTypesJSON = new JsonObject();
+  private String urlAPI;
 
   public static AriesController ariesController;
   public static Schema schema;
@@ -83,13 +98,34 @@ public class ControllerImpl implements Controller {
     if (hasNodes) {
       nodesUris = new ArrayList<>();
       String[] topicsConnection = { CONNECT, DISCONNECT };
+      String[] topicsRequest = { SENSORS_FOG };
 
       new ListenerConnection(
           this,
           MQTTClientHost,
           topicsConnection,
           QOS,
-          debugModeValue);
+          debugModeValue
+      );
+      new ListenerRequest(
+          this,
+          MQTTClientUp,
+          MQTTClientHost,
+          topicsRequest,
+          QOS,
+          debugModeValue
+      );
+    } else {
+      String[] topicsRequest = { SENSORS_EDGE };
+      
+      new ListenerRequest(
+          this,
+          MQTTClientUp,
+          MQTTClientHost,
+          topicsRequest,
+          QOS,
+          debugModeValue
+      );
     }
 
     ariesController = new AriesController(AGENT_ADDR, AGENT_PORT);
@@ -424,6 +460,93 @@ public class ControllerImpl implements Controller {
   }
 
   /**
+   * Adds the sensors in a JSON to send to the upper layer.
+   *
+   * @param jsonReceived JSONObject - JSON containing the sensor types.
+   */
+  @Override
+  public void putSensorsTypes(JsonObject jsonReceived) {
+    if (this.sensorsTypesJSON.get("sensors").getAsString().equals("[]")) {
+      sensorsTypesJSON = jsonReceived;
+    }
+  }
+
+  /**
+   * Adds the devices that were requested to the device list.
+   */
+  @Override
+  public void loadConnectedDevices() {
+    this.loadConnectedDevices(ClientIoTService.getApiIot(this.urlAPI));
+  }
+
+  /**
+   * Adds the devices that were requested to the device list.
+   *
+   * @param strDevices String - Required devices.
+   */
+  private void loadConnectedDevices(String strDevices) {
+    List<Device> devicesTemp = new ArrayList<Device>();
+
+    try {
+      printlnDebug("JSON load:");
+      printlnDebug(strDevices);
+
+      JSONArray jsonArrayDevices = new JSONArray(strDevices);
+
+      for (int i = 0; i < jsonArrayDevices.length(); i++) {
+        JSONObject jsonDevice = jsonArrayDevices.getJSONObject(i);
+        ObjectMapper mapper = new ObjectMapper();
+        Device device = mapper.readValue(jsonDevice.toString(), Device.class);
+
+        devicesTemp.add(device);
+
+        List<Sensor> tempSensors = new ArrayList<Sensor>();
+        JSONArray jsonArraySensors = jsonDevice.getJSONArray("sensors");
+
+        for (int j = 0; j < jsonArraySensors.length(); j++) {
+          JSONObject jsonSensor = jsonArraySensors.getJSONObject(j);
+          Sensor sensor = mapper.readValue(jsonSensor.toString(), Sensor.class);
+          sensor.setUrlAPI(urlAPI);
+          tempSensors.add(sensor);
+        }
+
+        device.setSensors(tempSensors);
+      }
+    } catch (JsonParseException e) {
+      printlnDebug(
+        "Verify the correct format of 'DevicesConnected' property in configuration file."
+      );
+      log.log(Level.SEVERE, null, e);
+    } catch (JsonMappingException e) {
+      printlnDebug(
+        "Verify the correct format of 'DevicesConnected' property in configuration file."
+      );
+      log.log(Level.SEVERE, null, e);
+    } catch (IOException e) {
+      log.log(Level.SEVERE, null, e);
+    }
+
+    this.devices = devicesTemp;
+
+    printlnDebug("Amount of devices connected: " + this.devices.size());
+  }
+
+  /**
+   * Requests sensor types from a connected device.
+   *
+   * @return List<String>
+   */
+  public List<String> loadSensorsTypes() {
+    List<String> sensorsList = new ArrayList<>();
+
+    for (Sensor sensor : this.getDevices().get(0).getSensors()) {
+      sensorsList.add(sensor.getType());
+    }
+
+    return sensorsList;
+  }
+
+  /**
    * Adds a URI to the URI list.
    *
    * @param uri String - URI you want to add.
@@ -543,6 +666,22 @@ public class ControllerImpl implements Controller {
     this.MQTTClientHost = mQTTClientHost;
   }
 
+  public List<Device> getDevices() {
+    return devices;
+  }
+
+  public void setDevices(List<Device> devices) {
+    this.devices = devices;
+  }
+
+  public String getUrlAPI() {
+    return urlAPI;
+  }
+
+  public void setUrlAPI(String urlAPI) {
+    this.urlAPI = urlAPI;
+  }
+
   public List<String> getNodesUris() {
     return nodesUris;
   }
@@ -587,6 +726,16 @@ public class ControllerImpl implements Controller {
 
   public void setTimeoutInSeconds(int timeoutInSeconds) {
     this.timeoutInSeconds = timeoutInSeconds;
+  }
+
+  /**
+   * Returns a JSON containing the available sensor types.
+   *
+   * @return JsonObject
+   */
+  @Override
+  public JsonObject getSensorsTypesJSON() {
+    return sensorsTypesJSON;
   }
 
   public String getAGENT_ADDR() {

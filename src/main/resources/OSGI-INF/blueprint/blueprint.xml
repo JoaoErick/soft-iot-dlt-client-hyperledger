@@ -29,6 +29,7 @@
         <property name="debugModeValue" value="${debugModeValue}" />
         <property name="MQTTClientUp" ref="MQTTClientUp" />
         <property name="MQTTClientHost" ref="MQTTClientHost" />
+        <property name="urlAPI" value="${urlAPI}" />
         <property name="hasNodes" value="${hasNodes}" />
         <property name="timeoutInSeconds" value="${timeoutInSeconds}" />
         <property name="AGENT_ADDR" value="${AGENT_ADDR}" />
@@ -45,6 +46,7 @@
 			<cm:property name="port" value="1883" />
 			<cm:property name="user" value="karaf" />
 			<cm:property name="pass" value="karaf" />
+            <cm:property name="urlAPI" value="http://localhost:8181/cxf/iot-service/devices" />
 			<cm:property name="hasNodes" value="true" />
 			<cm:property name="timeoutInSeconds" value="30" />
 			<cm:property name="debugModeValue" value="true" />
