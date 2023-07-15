@@ -60,7 +60,6 @@ public class ListenerRequest implements IMqttMessageListener {
   @Override
   public void messageArrived(String topic, MqttMessage message)
     throws Exception {
-    final String mqttMessage = new String(message.getPayload());
 
     switch (topic) {
       case SENSORS_FOG:

@@ -59,7 +59,7 @@ public class ListenerConnection implements IMqttMessageListener {
     final String[] params = topic.split("/");
     String msg = new String(message.getPayload());
 
-    printlnDebug("==== Receive Connect Request ====");
+    printlnDebug("\n==== Receive Connect Request ====");
 
     /* Check which topic was received. */
     switch (params[0]) {
