@@ -26,6 +26,34 @@ public interface Controller {
   List<Device> getDevices();
 
   /**
+   * Returns the number of devices connected to the nodes.
+   *
+   * @return String
+   */
+  List<String> getNumberDevicesConnectedNodes();
+
+  /**
+   * Creates a new key in the children's response map.
+   *
+   * @param id String - Request Id.
+   */
+  void addResponse(String key);
+
+  /**
+   * Updates the number of responses.
+   *
+   * @param id String - Request Id.
+   */
+  void updateResponse(String key);
+
+  /**
+   * Removes a specific reply from the reply queue.
+   *
+   *@param id String - Request Id.
+   */
+  void removeSpecificResponse(String key);
+
+  /**
    * Adds the devices that were requested to the device list.
    */
   void loadConnectedDevices();
@@ -93,6 +121,16 @@ public interface Controller {
    * @param connectionId - Node connection id
    */
   public void addConnectionIdNodes(String nodeUri, String connectionId);
+
+  /**
+   * Publishes the number of devices connected to nodes to the upper layer.
+   */
+  public void publishNumberDevicesConnected();
+
+  /**
+   * Publishes sensor types to the top layer.
+   */
+  public void publishSensorType();
 
   /**
    * Adds the sensors in a JSON to send to the upper layer.

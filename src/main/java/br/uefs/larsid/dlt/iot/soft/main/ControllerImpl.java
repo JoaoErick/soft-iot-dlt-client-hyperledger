@@ -10,6 +10,7 @@ import br.uefs.larsid.dlt.iot.soft.model.Schema;
 import br.uefs.larsid.dlt.iot.soft.model.Sensor;
 import br.uefs.larsid.dlt.iot.soft.mqtt.ListenerConnection;
 import br.uefs.larsid.dlt.iot.soft.mqtt.ListenerRequest;
+import br.uefs.larsid.dlt.iot.soft.mqtt.ListenerResponse;
 import br.uefs.larsid.dlt.iot.soft.mqtt.MQTTClient;
 import br.uefs.larsid.dlt.iot.soft.services.Controller;
 import br.uefs.larsid.dlt.iot.soft.utils.ClientIoTService;
@@ -50,8 +51,16 @@ public class ControllerImpl implements Controller {
 
   private static final String CONNECT = "SYN";
   private static final String DISCONNECT = "FIN";
-  private static final String SENSORS_FOG = "SENSORS_FOG";
+
+  private static final String GET_N_DEVICES = "GET_N_DEVICES";
+  private static final String N_DEVICES_RES = "N_DEVICES_RES";
+  private static final String N_DEVICES_EDGE = "N_DEVICES_EDGE";
+  private static final String N_DEVICES_EDGE_RES = "N_DEVICES_EDGE_RES";
+
+  private static final String GET_SENSORS = "GET_SENSORS";
+  private static final String SENSORS_RES = "SENSORS_RES";
   private static final String SENSORS_EDGE = "SENSORS_EDGE";
+  private static final String SENSORS_EDGE_RES = "SENSORS_EDGE_RES";
   /*-------------------------------------------------------------------------*/
 
   /* ------------------------ Aries constants ------------------------ */
@@ -70,6 +79,9 @@ public class ControllerImpl implements Controller {
   private Map<String, String> connectionIdNodes = new LinkedHashMap<String, String>();
   private List<String> nodesUris;
   private List<Device> devices;
+  private List<String> numberDevicesConnectedNodes;
+
+  private Map<String, Integer> responseQueue = new LinkedHashMap<String, Integer>();
   private JsonObject sensorsTypesJSON = new JsonObject();
   private String urlAPI;
 
@@ -92,13 +104,14 @@ public class ControllerImpl implements Controller {
     printlnDebug("Start Hyperledger Aries bundle!");
 
     /* 
-     * Configure Listener to receive connections from gateways 
-     * present at the Edge.
+     * Configure Listeners MQTT.
     */
     if (hasNodes) {
       nodesUris = new ArrayList<>();
+      numberDevicesConnectedNodes = new ArrayList<>();
       String[] topicsConnection = { CONNECT, DISCONNECT };
-      String[] topicsRequest = { SENSORS_FOG };
+      String[] topicsRequest = { GET_N_DEVICES, GET_SENSORS };
+      String[] topicsResponse = { N_DEVICES_EDGE_RES, SENSORS_EDGE_RES };
 
       new ListenerConnection(
           this,
@@ -107,24 +120,35 @@ public class ControllerImpl implements Controller {
           QOS,
           debugModeValue
       );
+
       new ListenerRequest(
-          this,
-          MQTTClientUp,
-          MQTTClientHost,
-          topicsRequest,
-          QOS,
-          debugModeValue
+        this,
+        MQTTClientUp,
+        MQTTClientHost,
+        this.nodesUris,
+        topicsRequest,
+        QOS,
+        debugModeValue
+      );
+
+      new ListenerResponse(
+        this,
+        MQTTClientHost,
+        topicsResponse,
+        QOS,
+        debugModeValue
       );
     } else {
-      String[] topicsRequest = { SENSORS_EDGE };
-      
+      String[] topics = { N_DEVICES_EDGE, SENSORS_EDGE };
+
       new ListenerRequest(
-          this,
-          MQTTClientUp,
-          MQTTClientHost,
-          topicsRequest,
-          QOS,
-          debugModeValue
+        this,
+        MQTTClientUp,
+        MQTTClientHost,
+        this.nodesUris,
+        topics,
+        QOS,
+        debugModeValue
       );
     }
 
@@ -190,9 +214,16 @@ public class ControllerImpl implements Controller {
 
       this.MQTTClientUp.publish(DISCONNECT, payload, QOS);
 
+      this.MQTTClientHost.unsubscribe(N_DEVICES_EDGE);
+      this.MQTTClientHost.unsubscribe(SENSORS_EDGE);
+
     } else {
       this.MQTTClientUp.unsubscribe(CONNECT);
       this.MQTTClientUp.unsubscribe(DISCONNECT);
+      this.MQTTClientUp.unsubscribe(GET_N_DEVICES);
+      this.MQTTClientUp.unsubscribe(GET_SENSORS);
+      this.MQTTClientUp.unsubscribe(N_DEVICES_EDGE_RES);
+      this.MQTTClientUp.unsubscribe(SENSORS_EDGE_RES);
     }
 
     this.MQTTClientHost.disconnect();
@@ -413,7 +444,7 @@ public class ControllerImpl implements Controller {
     printlnDebug("Calculate timestamp...");
     printlnDebug("Initial Time: " + timeSend);
     printlnDebug("Final Time: " + timeReceive);
-    printlnDebug("Difference: " + (timeReceive.getTime() - timeSend.getTime()));
+    printlnDebug("Difference: " + (timeReceive.getTime() - timeSend.getTime()) + " ms\n");
   }
 
   /**
@@ -469,6 +500,37 @@ public class ControllerImpl implements Controller {
     if (this.sensorsTypesJSON.get("sensors").getAsString().equals("[]")) {
       sensorsTypesJSON = jsonReceived;
     }
+  }
+
+  /**
+   * Creates a new key in the children's response map.
+   *
+   * @param id String - Request Id.
+   */
+  @Override
+  public void addResponse(String id) {
+    responseQueue.put(id, 0);
+  }
+
+  /**
+   * Updates the number of responses.
+   *
+   * @param id String - Request Id.
+   */
+  @Override
+  public void updateResponse(String id) {
+    int temp = responseQueue.get(id);
+    responseQueue.put(id, ++temp);
+  }
+
+  /**
+   * Removes a specific reply from the reply queue.
+   *
+   * @param id String - Request Id.
+   */
+  @Override
+  public void removeSpecificResponse(String id) {
+    responseQueue.remove(id);
   }
 
   /**
@@ -529,6 +591,70 @@ public class ControllerImpl implements Controller {
     this.devices = devicesTemp;
 
     printlnDebug("Amount of devices connected: " + this.devices.size());
+  }
+
+  /**
+   * Publishes the number of devices connected to nodes to the upper layer.
+   */
+  @Override
+  public void publishNumberDevicesConnected() {
+    printlnDebug("Waiting for Gateway nodes to send number of connected devices");
+
+    long start = System.currentTimeMillis();
+    long end = start + this.timeoutInSeconds * 1000;
+
+    /*
+     * As long as the number of request responses is less than 
+     * the number of child nodes.
+     */
+    while (
+      this.responseQueue.get("numberOfDevices") < this.nodesUris.size() &&
+      System.currentTimeMillis() < end
+    ) {}
+
+    String numberDevicesFormatted = "\n+---- Number of devices connected to the nodes ----+\n";
+    for (String numberDevicesNode : this.numberDevicesConnectedNodes) {
+      numberDevicesFormatted += numberDevicesNode + "\n";
+    }
+    numberDevicesFormatted += "\n+----------------------------+\n";
+
+    byte[] payload = numberDevicesFormatted.getBytes();
+
+    MQTTClientUp.publish(N_DEVICES_RES, payload, 1);
+
+    printlnDebug("Result sent successfully!");
+
+    this.numberDevicesConnectedNodes.clear();
+
+    this.removeSpecificResponse("numberOfDevices");
+  }
+
+  /**
+   * Publishes sensor types to the top layer.
+   */
+  @Override
+  public void publishSensorType() {
+    printlnDebug("Waiting for Gateway nodes to send their sensors types");
+
+    long start = System.currentTimeMillis();
+    long end = start + this.timeoutInSeconds * 1000;
+
+    /*
+     * As long as the number of request responses is less than 
+     * the number of child nodes.
+     */
+    while (
+      this.responseQueue.get("getSensors") < this.nodesUris.size() &&
+      System.currentTimeMillis() < end
+    ) {}
+
+    byte[] payload = sensorsTypesJSON.toString().replace("\\", "").getBytes();
+
+    MQTTClientUp.publish(SENSORS_RES, payload, 1);
+
+    printlnDebug("Result sent successfully!");
+
+    this.removeSpecificResponse("getSensors");
   }
 
   /**
@@ -688,6 +814,14 @@ public class ControllerImpl implements Controller {
 
   public void setNodesUris(List<String> nodesUris) {
     this.nodesUris = nodesUris;
+  }
+
+  public List<String> getNumberDevicesConnectedNodes() {
+    return numberDevicesConnectedNodes;
+  }
+
+  public void setNumberDevicesConnectedNodes(List<String> numberDevicesConnectedNodes) {
+    this.numberDevicesConnectedNodes = numberDevicesConnectedNodes;
   }
 
   /**
