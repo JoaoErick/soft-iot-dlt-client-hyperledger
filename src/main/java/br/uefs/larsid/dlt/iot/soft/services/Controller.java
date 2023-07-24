@@ -164,6 +164,16 @@ public interface Controller {
   public JsonObject createInvitation(String nodeUri) throws IOException, WriterException;
 
   /**
+   * Creating device connection invitation.
+   * 
+   * @param nodeUri - URI of the node want to connect.
+   * @return JsonObject
+   * @throws IOException
+   * @throws WriterException
+   */
+  public JsonObject createDeviceInvitation() throws IOException, WriterException;
+
+  /**
    * Receiving connection invitation from another aries agent.
    * 
    * @param nodeUri - URI of the node want to connect.
@@ -171,6 +181,15 @@ public interface Controller {
    * @throws IOException
    */
   public void receiveInvitation(String nodeUri, JsonObject invitationJson) throws IOException;
+
+  /**
+   * Receiving device connection invitation from another aries agent.
+   * 
+   * @param nodeUri - URI of the node want to connect.
+   * @param invitationJson - JSON with connection properties.
+   * @throws IOException
+   */
+  public String receiveDeviceInvitation(JsonObject invitationJson) throws IOException;
 
   /**
    * Issuing a credential to a connected gateway.

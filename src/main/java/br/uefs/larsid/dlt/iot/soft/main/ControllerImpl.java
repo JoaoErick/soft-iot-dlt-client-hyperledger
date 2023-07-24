@@ -9,6 +9,7 @@ import br.uefs.larsid.dlt.iot.soft.model.Invitation;
 import br.uefs.larsid.dlt.iot.soft.model.Schema;
 import br.uefs.larsid.dlt.iot.soft.model.Sensor;
 import br.uefs.larsid.dlt.iot.soft.mqtt.ListenerConnection;
+import br.uefs.larsid.dlt.iot.soft.mqtt.ListenerDeviceConnection;
 import br.uefs.larsid.dlt.iot.soft.mqtt.ListenerRequest;
 import br.uefs.larsid.dlt.iot.soft.mqtt.ListenerResponse;
 import br.uefs.larsid.dlt.iot.soft.mqtt.MQTTClient;
@@ -51,6 +52,8 @@ public class ControllerImpl implements Controller {
 
   private static final String CONNECT = "SYN";
   private static final String DISCONNECT = "FIN";
+
+  private static final String DEV_CONNECTIONS = "dev/CONNECTIONS";
 
   private static final String GET_N_DEVICES = "GET_N_DEVICES";
   private static final String N_DEVICES_RES = "N_DEVICES_RES";
@@ -106,6 +109,7 @@ public class ControllerImpl implements Controller {
     /* 
      * Configure Listeners MQTT.
     */
+    String[] topicsDeviceConnection = { DEV_CONNECTIONS };
     if (hasNodes) {
       nodesUris = new ArrayList<>();
       numberDevicesConnectedNodes = new ArrayList<>();
@@ -151,6 +155,14 @@ public class ControllerImpl implements Controller {
         debugModeValue
       );
     }
+
+    new ListenerDeviceConnection(
+        this,
+        MQTTClientHost,
+        topicsDeviceConnection,
+        QOS,
+        debugModeValue
+    );
 
     ariesController = new AriesController(AGENT_ADDR, AGENT_PORT);
 
@@ -218,13 +230,14 @@ public class ControllerImpl implements Controller {
       this.MQTTClientHost.unsubscribe(SENSORS_EDGE);
 
     } else {
-      this.MQTTClientUp.unsubscribe(CONNECT);
-      this.MQTTClientUp.unsubscribe(DISCONNECT);
+      this.MQTTClientHost.unsubscribe(CONNECT);
+      this.MQTTClientHost.unsubscribe(DISCONNECT);
       this.MQTTClientUp.unsubscribe(GET_N_DEVICES);
       this.MQTTClientUp.unsubscribe(GET_SENSORS);
-      this.MQTTClientUp.unsubscribe(N_DEVICES_EDGE_RES);
-      this.MQTTClientUp.unsubscribe(SENSORS_EDGE_RES);
+      this.MQTTClientHost.unsubscribe(N_DEVICES_EDGE_RES);
+      this.MQTTClientHost.unsubscribe(SENSORS_EDGE_RES);
     }
+    this.MQTTClientHost.unsubscribe(DEV_CONNECTIONS);
 
     this.MQTTClientHost.disconnect();
     this.MQTTClientUp.disconnect();
@@ -277,6 +290,38 @@ public class ControllerImpl implements Controller {
     jsonInvitation.addProperty("nodeUri", nodeUri);
 
     printlnDebug("Final JSON: " + jsonInvitation.toString() + "\n");
+
+    return jsonInvitation;
+  }
+
+  public JsonObject createDeviceInvitation() throws IOException, WriterException {
+    int idConvite = ariesController.getConnections().size();
+    return createDeviceInvitation(ariesController, ("Convite_" + idConvite++));
+  }
+
+  /**
+   * Creating device connection invitation.
+   * 
+   * @param ariesController - Aries controller with agent interaction methods.
+   * @param label - Connection invite label.
+   * @param nodeUri - URI of the node want to connect.
+   * @return JsonObject
+   * @throws IOException
+   * @throws WriterException
+    */
+  private JsonObject createDeviceInvitation(AriesController ariesController, String label)
+      throws IOException, WriterException {
+    printlnDebug("Creating device connection invitation...");
+
+    CreateInvitationResponse createInvitationResponse = ariesController.createInvitation(label);
+
+    String json = ariesController.getJsonInvitation(createInvitationResponse);
+
+    printlnDebug("Json Device Invitation: " + json);
+
+    printlnDebug("Device Invitation created!\n");
+
+    JsonObject jsonInvitation = new Gson().fromJson(json, JsonObject.class);
 
     return jsonInvitation;
   }
@@ -490,6 +535,31 @@ public class ControllerImpl implements Controller {
     printlnDebug("\n\nConnection:\n" + connectionRecord.toString() + "\n");
   }
 
+  public String receiveDeviceInvitation(JsonObject invitationJson) throws IOException {
+    return receiveDeviceInvitation(ariesController, invitationJson);
+  }
+
+  /**
+   * Receiving device connection invitation from another aries agent.
+   * 
+   * @param ariesController - Aries controller with agent interaction methods.
+   * @param nodeUri - URI of the node want to connect.
+   * @param invitationJson - JSON with connection properties.
+   * @return String
+   * @throws IOException
+    */
+  private String receiveDeviceInvitation(AriesController ariesController, JsonObject invitationJson) throws IOException {
+    Invitation invitationObj = new Invitation(invitationJson);
+
+    printlnDebug("Receiving Connection Invitation...");
+
+    ConnectionRecord connectionRecord = ariesController.receiveInvitation(invitationObj);
+
+    printlnDebug("\n\nConnection:\n" + connectionRecord.toString() + "\n");
+
+    return connectionRecord.getConnectionId();
+  }
+
   /**
    * Adds the sensors in a JSON to send to the upper layer.
    *
@@ -616,7 +686,7 @@ public class ControllerImpl implements Controller {
     for (String numberDevicesNode : this.numberDevicesConnectedNodes) {
       numberDevicesFormatted += numberDevicesNode + "\n";
     }
-    numberDevicesFormatted += "\n+----------------------------+\n";
+    numberDevicesFormatted += "+----------------------------+\n";
 
     byte[] payload = numberDevicesFormatted.getBytes();
 
