@@ -8,10 +8,32 @@ Este _bundle_ integra a capacidade de prover identidade auto-soberana à Platafo
 
 O agente **Aries (aca-py)**, desenvolvido pela Hyperledger, é utilizado como base para as interações de identidade. Ele fornece os recursos necessários para configurar, gerenciar e trocar identidades de forma segura e verificável.
 
+## Ledger VON NETWORK
+
+O projeto utiliza o ledger VON NETWORK para registrar e verificar as credenciais verificáveis emitidas. O VON NETWORK é um ledger baseado em blockchain que fornece uma base confiável para o armazenamento e a verificação de identidades descentralizadas.
+
+## Armazenamento de Credenciais
+
+Cada nó da rede possui sua própria carteira, implementada utilizando um banco de dados PostgreSQL. Isso permite que as credenciais verificáveis sejam armazenadas de forma segura e acessível para uso posterior.
+
+## Integração com ngrok
+
+Para fornecer os serviços dos agentes aca-py na internet, este projeto utiliza o ngrok, permitindo que os nós da rede possam interagir com os agentes por meio de URLs acessíveis publicamente.
+
 ## Arquitetura
 
 <p align="center">
-  <img src="./assets/generalComunication.png" width="580px" />
+  <img src="./assets/network-architeture.png" width="580px" />
+</p>
+
+<p align="center">Figura 1. Arquitetura geral do ambiente de névoa das coisas</p>
+
+<p align="center">
+  <img src="./assets/auth-module.png" width="580px" />
+</p>
+
+<p align="center">
+Figura 2. Módulo de Autenticação
 </p>
 
 ## Funcionalidades Principais
@@ -78,20 +100,6 @@ O _fog gateway_ envia uma solicitação HTTP para o Agent Aries com objetivo do 
 Envia uma apresentação de uma credencial verificável como comprovação de que o nó possui permissão para interagir no ambiente.
 
 O _edge gateway_ envia uma solicitação HTTP para o Agent Aries com objetivo do mesmo enviar uma apresentação de credencial para o agente de um _fog gateway_ que solicitou a comprovação da mesma.
-
----
-
-## Ledger VON NETWORK
-
-O projeto utiliza o ledger VON NETWORK para registrar e verificar as credenciais verificáveis emitidas. O VON NETWORK é um ledger baseado em blockchain que fornece uma base confiável para o armazenamento e a verificação de identidades descentralizadas.
-
-## Armazenamento de Credenciais
-
-Cada nó da rede possui sua própria carteira, implementada utilizando um banco de dados PostgreSQL. Isso permite que as credenciais verificáveis sejam armazenadas de forma segura e acessível para uso posterior.
-
-## Integração com ngrok
-
-Para fornecer os serviços dos agentes aca-py na internet, este projeto utiliza o ngrok, permitindo que os nós da rede possam interagir com os agentes por meio de URLs acessíveis publicamente.
 
 ## Licença
 
