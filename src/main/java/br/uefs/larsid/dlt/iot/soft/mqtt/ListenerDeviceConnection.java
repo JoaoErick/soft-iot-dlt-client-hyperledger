@@ -64,7 +64,7 @@ public class ListenerDeviceConnection implements IMqttMessageListener {
         JsonObject jsonProperties = new Gson().fromJson(jsonMsg, JsonObject.class);
 
         /* Add new device name */
-        String name = jsonProperties.get("HEADER").getAsJsonObject().get("NAME").getAsString();
+        String name = jsonProperties.get("HEADER").getAsJsonObject().get("SOURCE_IP").getAsString();
 
         JsonObject jsonInvitation =  this.controllerImpl.createDeviceInvitation();
         

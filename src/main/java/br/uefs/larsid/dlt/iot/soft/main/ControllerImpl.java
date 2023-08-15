@@ -170,9 +170,8 @@ public class ControllerImpl implements Controller {
     try {
       printlnDebug("EndPoint: " + ariesController.getEndPoint() + "\n");
 
-      int idSchema = ariesController.getSchemasCreated().size() + 11; // precisa automatizar o número baseado na
-                                                                      // persistencia
-      int idTag = 1;
+      int idSchema = ariesController.getSchemasCreated().size() + 1; 
+      int idTag = idSchema;
 
       List<String> attributes = new ArrayList<>();
       attributes.add("idNode");
@@ -400,34 +399,6 @@ public class ControllerImpl implements Controller {
 
     printlnDebug("Issued Credential!\n");
   }
-
-  /**
-   * Makes the list of agent connections.
-   * 
-   * @param ariesController - Aries controller with agent interaction methods.
-   * @throws IOException
-    */
-  // private void listConnections(AriesController ariesController) throws IOException {
-  //  printlnDebug("Consultando conexões ...");
-
-  //   List<ConnectionRecord> connectionsRecords = ariesController.getConnections();
-
-  //  printlnDebug("Listando conexões...");
-  //   for (ConnectionRecord connectionRecord : connectionsRecords) {
-  //    printlnDebug("\nConexão ID: " + connectionRecord.getConnectionId());
-  //    printlnDebug("State: " + connectionRecord.getState());
-  //    printlnDebug("RFC State: " + connectionRecord.getRfc23Sate());
-  //    printlnDebug("Alias: " + connectionRecord.getAlias());
-  //    printlnDebug("Invitation Key: " + connectionRecord.getInvitationKey());
-  //    printlnDebug("Their Label: " + connectionRecord.getTheirLabel());
-  //    printlnDebug("Their DID: " + connectionRecord.getTheirDid());
-  //    printlnDebug("Created At: " + connectionRecord.getCreatedAt());
-  //    printlnDebug("Updated At: " + connectionRecord.getUpdatedAt());
-  //    printlnDebug("Msg error: " + connectionRecord.getErrorMsg());
-  //   }
-
-  //  printlnDebug("\nFim da lista de conexões!\n");
-  // }
 
   public void sendRequestPresentationRequest(String connectionId) throws IOException, InterruptedException {
     sendRequestPresentationRequest(ariesController, connectionId);
