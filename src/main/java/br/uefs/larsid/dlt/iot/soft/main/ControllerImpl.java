@@ -188,20 +188,22 @@ public class ControllerImpl implements Controller {
     }
 
     /*
-     * Fog: Configures the credential definition.
+     * Configures the credential definition.
+     */
+    try {
+      String credentialDefinitionId = this.createCredentialDefinition();
+      credentialDefinition.setId(credentialDefinitionId);
+    } catch (IOException e) {
+      printlnDebug("\n(!) Error to configure Crendential Definition\n");
+      e.printStackTrace();
+    }
+    this.setCrendentialDefinitionIsConfigured(true);
+
+    /**
      * Edge: Creates and Sends the connection JSON to the gateway
      * present in the Fog.
-     */
-    if (hasNodes) {
-      try {
-        String credentialDefinitionId = this.createCredentialDefinition();
-        credentialDefinition.setId(credentialDefinitionId);
-      } catch (IOException e) {
-        printlnDebug("\n(!) Error to configure Crendential Definition\n");
-        e.printStackTrace();
-      }
-      this.setCrendentialDefinitionIsConfigured(true);
-    } else {
+      */
+    if (!hasNodes) {
       try {
         String nodeUri = String
             .format("%s:%s", MQTTClientHost.getIp(), MQTTClientHost.getPort());
@@ -289,38 +291,6 @@ public class ControllerImpl implements Controller {
     jsonInvitation.addProperty("nodeUri", nodeUri);
 
     printlnDebug("Final JSON: " + jsonInvitation.toString() + "\n");
-
-    return jsonInvitation;
-  }
-
-  public JsonObject createDeviceInvitation() throws IOException, WriterException {
-    int idConvite = ariesController.getConnections().size();
-    return createDeviceInvitation(ariesController, ("Convite_" + idConvite++));
-  }
-
-  /**
-   * Creating device connection invitation.
-   * 
-   * @param ariesController - Aries controller with agent interaction methods.
-   * @param label - Connection invite label.
-   * @param nodeUri - URI of the node want to connect.
-   * @return JsonObject
-   * @throws IOException
-   * @throws WriterException
-    */
-  private JsonObject createDeviceInvitation(AriesController ariesController, String label)
-      throws IOException, WriterException {
-    printlnDebug("Creating device connection invitation...");
-
-    CreateInvitationResponse createInvitationResponse = ariesController.createInvitation(label);
-
-    String json = ariesController.getJsonInvitation(createInvitationResponse);
-
-    printlnDebug("Json Device Invitation: " + json);
-
-    printlnDebug("Device Invitation created!\n");
-
-    JsonObject jsonInvitation = new Gson().fromJson(json, JsonObject.class);
 
     return jsonInvitation;
   }
@@ -657,7 +627,7 @@ public class ControllerImpl implements Controller {
     for (String numberDevicesNode : this.numberDevicesConnectedNodes) {
       numberDevicesFormatted += numberDevicesNode + "\n";
     }
-    numberDevicesFormatted += "+----------------------------+\n";
+    numberDevicesFormatted += "+--------------------------------------------------+\n";
 
     byte[] payload = numberDevicesFormatted.getBytes();
 

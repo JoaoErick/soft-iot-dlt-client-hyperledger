@@ -164,16 +164,6 @@ public interface Controller {
   public JsonObject createInvitation(String nodeUri) throws IOException, WriterException;
 
   /**
-   * Creating device connection invitation.
-   * 
-   * @param nodeUri - URI of the node want to connect.
-   * @return JsonObject
-   * @throws IOException
-   * @throws WriterException
-   */
-  public JsonObject createDeviceInvitation() throws IOException, WriterException;
-
-  /**
    * Receiving connection invitation from another aries agent.
    * 
    * @param nodeUri - URI of the node want to connect.
