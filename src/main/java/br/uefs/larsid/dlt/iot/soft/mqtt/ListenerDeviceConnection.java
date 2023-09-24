@@ -60,36 +60,57 @@ public class ListenerDeviceConnection implements IMqttMessageListener {
     switch (topic) {
       case DEV_CONNECTIONS:
         printlnDebug("CONNECT DEVICE...");
-        String jsonMsg = msg.replace("CONNECT VALUE BROKER ", "");
-        JsonObject jsonProperties = new Gson().fromJson(jsonMsg, JsonObject.class);
+        String deviceIp = "";
+        String connectionId = "";
 
-        /* Add new device name */
-        String name = jsonProperties.get("HEADER").getAsJsonObject().get("SOURCE_IP").getAsString();
+        try {
+          
+          String jsonDevice = msg.replace("CONNECT VALUE BROKER ", "");
+          
+          printlnDebug(jsonDevice);
+  
+          JsonObject jsonProperties = new Gson().fromJson(jsonDevice, JsonObject.class);
+  
+          /* Extract data */
+          JsonObject jsonInvitation = jsonProperties.get("ARIES_CONNECTION").getAsJsonObject();
+          deviceIp = jsonProperties.get("HEADER").getAsJsonObject().get("SOURCE_IP").getAsString();
+  
+          connectionId = this.controllerImpl.receiveDeviceInvitation(jsonInvitation);
+          printlnDebug("Invitation Accepted!");
+  
+          printlnDebug("Received Connection Id: " + connectionId);
 
-        JsonObject jsonInvitation =  this.controllerImpl.createDeviceInvitation();
-        
-        String connectionId = this.controllerImpl.receiveDeviceInvitation(jsonInvitation);
-        printlnDebug("Invitation Accepted!");
+          /* Ensuring that connection between agents has been completed */
+          String state;
+          boolean flag = false;
+          printlnDebug("Waiting for the connection to become active...");
+          while (flag == false) {
+            state = ControllerImpl.ariesController.getConnection(connectionId).getState().toString();
+            if (state.equals("ACTIVE")) {
+              flag = true;
+            }
+          }
+          printlnDebug("Connection established!");
+        } catch (Exception e) {
+          printlnDebug("[!Error receiving connection from new device!]");
+          e.printStackTrace();
+        }
 
-        /* Ensuring that connection between agents has been completed */
-        String state;
-        boolean flag = false;
-        printlnDebug("Waiting for the connection to become active...");
-        while (flag == false) {
-          state = ControllerImpl.ariesController.getConnection(connectionId).getState().toString();
-          if (state.equals("ACTIVE")) {
-            flag = true;
+        if (!deviceIp.isEmpty() && !connectionId.isEmpty()) {
+          try {
+            
+            /* Create JSON to Issue Credential */
+            JsonObject jsonIssueCredential = new JsonObject();
+            jsonIssueCredential.addProperty("value", deviceIp);
+            jsonIssueCredential.addProperty("connectionId", connectionId);
+    
+            /* Issue Credential */
+            this.controllerImpl.issueCredentialV1(jsonIssueCredential);
+          } catch (Exception e) {
+            printlnDebug("[!Error when trying to issue the credential for the new device!]");
+            e.printStackTrace();
           }
         }
-        printlnDebug("Connection established!");
-        
-        /* Create JSON to Issue Credential */
-        JsonObject jsonIssueCredential = new JsonObject();
-        jsonIssueCredential.addProperty("value", name);
-        jsonIssueCredential.addProperty("connectionId", connectionId);
-
-        /* Issue Credential */
-        this.controllerImpl.issueCredentialV1(jsonIssueCredential);
 
         break;
     }
