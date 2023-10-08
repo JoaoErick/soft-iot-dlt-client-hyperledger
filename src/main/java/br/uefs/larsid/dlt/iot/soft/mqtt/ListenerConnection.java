@@ -18,8 +18,8 @@ import java.util.logging.Logger;
 public class ListenerConnection implements IMqttMessageListener {
 
   /*------------------------------ Constants ------------------------------*/
-  private static final String CONNECT = "SYN";
-  private static final String DISCONNECT = "FIN";
+  private static final String CONNECT = "SYN_IDENTITY";
+  private static final String DISCONNECT = "FIN_IDENTITY";
   private static final int TIMEOUT_IN_SECONDS = 10;
   
   private static Logger log = Logger.getLogger(ListenerConnection.class.getName());
