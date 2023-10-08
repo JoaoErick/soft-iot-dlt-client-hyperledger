@@ -60,7 +60,7 @@ public class ListenerDeviceConnection implements IMqttMessageListener {
     switch (topic) {
       case DEV_CONNECTIONS:
         printlnDebug("CONNECT DEVICE...");
-        String deviceIp = "";
+        String deviceIp = "", deviceId = "";
         String connectionId = "";
 
         try {
@@ -74,8 +74,9 @@ public class ListenerDeviceConnection implements IMqttMessageListener {
           /* Extract data */
           JsonObject jsonInvitation = jsonProperties.get("ARIES_CONNECTION").getAsJsonObject();
           deviceIp = jsonProperties.get("HEADER").getAsJsonObject().get("SOURCE_IP").getAsString();
+          deviceId = jsonProperties.get("DEVICE").getAsJsonObject().get("id").getAsString();
   
-          connectionId = this.controllerImpl.receiveDeviceInvitation(jsonInvitation);
+          connectionId = this.controllerImpl.receiveDeviceInvitation(deviceId, jsonInvitation);
           printlnDebug("Invitation Accepted!");
   
           printlnDebug("Received Connection Id: " + connectionId);
