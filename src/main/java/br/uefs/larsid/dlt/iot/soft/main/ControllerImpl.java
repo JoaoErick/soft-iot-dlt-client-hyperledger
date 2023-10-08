@@ -10,6 +10,7 @@ import br.uefs.larsid.dlt.iot.soft.model.Schema;
 import br.uefs.larsid.dlt.iot.soft.model.Sensor;
 import br.uefs.larsid.dlt.iot.soft.mqtt.ListenerConnection;
 import br.uefs.larsid.dlt.iot.soft.mqtt.ListenerDeviceConnection;
+import br.uefs.larsid.dlt.iot.soft.mqtt.ListenerDeviceRequest;
 import br.uefs.larsid.dlt.iot.soft.mqtt.ListenerRequest;
 import br.uefs.larsid.dlt.iot.soft.mqtt.ListenerResponse;
 import br.uefs.larsid.dlt.iot.soft.mqtt.MQTTClient;
@@ -50,8 +51,8 @@ public class ControllerImpl implements Controller {
   /*------------------------------- Constants -------------------------------*/
   private static final int QOS = 1;
 
-  private static final String CONNECT = "SYN";
-  private static final String DISCONNECT = "FIN";
+  private static final String CONNECT = "SYN_IDENTITY";
+  private static final String DISCONNECT = "FIN_IDENTITY";
 
   private static final String DEV_CONNECTIONS = "dev/CONNECTIONS";
 
@@ -64,6 +65,8 @@ public class ControllerImpl implements Controller {
   private static final String SENSORS_RES = "SENSORS_RES";
   private static final String SENSORS_EDGE = "SENSORS_EDGE";
   private static final String SENSORS_EDGE_RES = "SENSORS_EDGE_RES";
+
+  private static final String AUTHENTICATED_DEVICES = "AUTHENTICATED_DEVICES";
   /*-------------------------------------------------------------------------*/
 
   /* ------------------------ Aries constants ------------------------ */
@@ -80,6 +83,7 @@ public class ControllerImpl implements Controller {
 
   private boolean hasNodes;
   private Map<String, String> connectionIdNodes = new LinkedHashMap<String, String>();
+  private Map<String, String> connectionIdDeviceNodes = new LinkedHashMap<String, String>();
   private List<String> nodesUris;
   private List<Device> devices;
   private List<String> numberDevicesConnectedNodes;
@@ -143,14 +147,24 @@ public class ControllerImpl implements Controller {
         debugModeValue
       );
     } else {
-      String[] topics = { N_DEVICES_EDGE, SENSORS_EDGE };
+      String[] topicsRequest = { N_DEVICES_EDGE, SENSORS_EDGE };
+      String[] topicsDeviceRequest = { AUTHENTICATED_DEVICES };
 
       new ListenerRequest(
         this,
         MQTTClientUp,
         MQTTClientHost,
         this.nodesUris,
-        topics,
+        topicsRequest,
+        QOS,
+        debugModeValue
+      );
+
+      new ListenerDeviceRequest(
+        this,
+        MQTTClientUp,
+        MQTTClientHost,
+        topicsDeviceRequest,
         QOS,
         debugModeValue
       );
@@ -476,25 +490,27 @@ public class ControllerImpl implements Controller {
     printlnDebug("\n\nConnection:\n" + connectionRecord.toString() + "\n");
   }
 
-  public String receiveDeviceInvitation(JsonObject invitationJson) throws IOException {
-    return receiveDeviceInvitation(ariesController, invitationJson);
+  public String receiveDeviceInvitation(String deviceId, JsonObject invitationJson) throws IOException {
+    return receiveDeviceInvitation(ariesController, deviceId, invitationJson);
   }
 
   /**
    * Receiving device connection invitation from another aries agent.
    * 
    * @param ariesController - Aries controller with agent interaction methods.
-   * @param nodeUri - URI of the node want to connect.
+   * @param deviceIp - IP of the node want to connect.
    * @param invitationJson - JSON with connection properties.
    * @return String
    * @throws IOException
     */
-  private String receiveDeviceInvitation(AriesController ariesController, JsonObject invitationJson) throws IOException {
+  private String receiveDeviceInvitation(AriesController ariesController, String deviceId, JsonObject invitationJson) throws IOException {
     Invitation invitationObj = new Invitation(invitationJson);
 
     printlnDebug("Receiving Connection Invitation...");
 
     ConnectionRecord connectionRecord = ariesController.receiveInvitation(invitationObj);
+
+    this.addConnectionIdDeviceNodes(deviceId, connectionRecord.getConnectionId());
 
     printlnDebug("\n\nConnection:\n" + connectionRecord.toString() + "\n");
 
@@ -863,6 +879,14 @@ public class ControllerImpl implements Controller {
 
   public void addConnectionIdNodes(String nodeUri, String connectionId) {
     this.connectionIdNodes.put(nodeUri, connectionId);
+  }
+
+  public Map<String, String> getConnectionIdDeviceNodes() {
+    return connectionIdDeviceNodes;
+  }
+
+  public void addConnectionIdDeviceNodes(String deviceId, String connectionId) {
+    this.connectionIdDeviceNodes.put(deviceId, connectionId);
   }
 
   public int getTimeoutInSeconds() {

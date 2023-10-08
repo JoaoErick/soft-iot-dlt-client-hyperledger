@@ -123,6 +123,22 @@ public interface Controller {
   public void addConnectionIdNodes(String nodeUri, String connectionId);
 
   /**
+   * Returns a map containing device id and connection id of 
+   * device connected nodes.
+   * 
+   * @return Map<String, String>
+   */
+  public Map<String, String> getConnectionIdDeviceNodes();
+
+  /**
+   * Adds the device id and connection id of the connected node.
+   * 
+   * @param deviceId - Id of the device want to connect.
+   * @param connectionId - Node connection id
+   */
+  public void addConnectionIdDeviceNodes(String deviceId, String connectionId);
+
+  /**
    * Publishes the number of devices connected to nodes to the upper layer.
    */
   public void publishNumberDevicesConnected();
@@ -175,11 +191,11 @@ public interface Controller {
   /**
    * Receiving device connection invitation from another aries agent.
    * 
-   * @param nodeUri - URI of the node want to connect.
+   * @param deviceId - Id of the device want to connect.
    * @param invitationJson - JSON with connection properties.
    * @throws IOException
    */
-  public String receiveDeviceInvitation(JsonObject invitationJson) throws IOException;
+  public String receiveDeviceInvitation(String deviceId, JsonObject invitationJson) throws IOException;
 
   /**
    * Issuing a credential to a connected gateway.
