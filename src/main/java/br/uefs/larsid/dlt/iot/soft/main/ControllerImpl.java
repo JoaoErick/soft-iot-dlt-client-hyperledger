@@ -79,6 +79,7 @@ public class ControllerImpl implements Controller {
 
   private boolean debugModeValue;
   private boolean crendentialDefinitionIsConfigured = false;
+  private boolean proofOfCredentialReceived = false;
   private int timeoutInSeconds;
 
   private boolean hasNodes;
@@ -160,10 +161,12 @@ public class ControllerImpl implements Controller {
         debugModeValue
       );
 
+      String nodeUri = String
+      .format("%s:%s", MQTTClientHost.getIp(), MQTTClientHost.getPort());
       new ListenerDeviceRequest(
         this,
-        MQTTClientUp,
         MQTTClientHost,
+        nodeUri,
         topicsDeviceRequest,
         QOS,
         debugModeValue
@@ -243,6 +246,7 @@ public class ControllerImpl implements Controller {
 
       this.MQTTClientHost.unsubscribe(N_DEVICES_EDGE);
       this.MQTTClientHost.unsubscribe(SENSORS_EDGE);
+      this.MQTTClientHost.unsubscribe(AUTHENTICATED_DEVICES);
 
     } else {
       this.MQTTClientHost.unsubscribe(CONNECT);
@@ -254,8 +258,8 @@ public class ControllerImpl implements Controller {
     }
     this.MQTTClientHost.unsubscribe(DEV_CONNECTIONS);
 
-    this.MQTTClientHost.disconnect();
-    this.MQTTClientUp.disconnect();
+    // this.MQTTClientHost.disconnect();
+    // this.MQTTClientUp.disconnect();
   }
 
   /**
@@ -445,6 +449,8 @@ public class ControllerImpl implements Controller {
     printlnDebug("Initial Time: " + timeSend);
     printlnDebug("Final Time: " + timeReceive);
     printlnDebug("Difference: " + (timeReceive.getTime() - timeSend.getTime()) + " ms\n");
+
+    this.proofOfCredentialReceived = true;
   }
 
   /**
@@ -871,6 +877,14 @@ public class ControllerImpl implements Controller {
 
   public void setCrendentialDefinitionIsConfigured(boolean crendentialDefinitionIsConfigured) {
     this.crendentialDefinitionIsConfigured = crendentialDefinitionIsConfigured;
+  }
+
+  public boolean isProofOfCredentialReceived() {
+    return this.proofOfCredentialReceived;
+  }
+
+  public void setProofOfCredentialReceived(boolean proofOfCredentialReceived) {
+    this.proofOfCredentialReceived = proofOfCredentialReceived;
   }
 
   public Map<String, String> getConnectionIdNodes() {

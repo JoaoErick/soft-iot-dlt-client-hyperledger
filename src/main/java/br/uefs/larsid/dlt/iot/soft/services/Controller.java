@@ -213,4 +213,8 @@ public interface Controller {
    * @throws InterruptedException
    */
   public void sendRequestPresentationRequest(String connectionId) throws IOException, InterruptedException;
+
+  public boolean isProofOfCredentialReceived();
+
+  public void setProofOfCredentialReceived(boolean proofOfCredentialReceived);
 }
