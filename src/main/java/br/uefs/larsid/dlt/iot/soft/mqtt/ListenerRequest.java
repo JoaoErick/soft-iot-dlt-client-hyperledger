@@ -77,16 +77,11 @@ public class ListenerRequest implements IMqttMessageListener {
 
         printlnDebug("Requesting number of connected devices...");
 
-        /**
-         * Requesting the devices that are connected to the node itself.
-         */
-        this.controllerImpl.loadConnectedDevices();
-
         this.controllerImpl.getNumberDevicesConnectedNodes().add(
           String.format(
             "gateway: %s | %s devices connected", 
             MQTTClientHost.getIp(), 
-            this.controllerImpl.getDevices().size()
+            this.controllerImpl.getNode().getDevices().size()
           )
         );
 
@@ -106,15 +101,10 @@ public class ListenerRequest implements IMqttMessageListener {
 
         printlnDebug("Requesting number of connected devices...");
 
-        /**
-         * Requesting the devices that are connected to the node itself.
-         */
-        this.controllerImpl.loadConnectedDevices();
-
         byte[] payloadNumberDevices = String.format(
             "gateway: %s | %s devices connected", 
             MQTTClientHost.getIp(), 
-            this.controllerImpl.getDevices().size()
+            this.controllerImpl.getNode().getDevices().size()
           ).getBytes();
 
         MQTTClientUp.publish(N_DEVICES_EDGE_RES, payloadNumberDevices, 1);
@@ -125,14 +115,9 @@ public class ListenerRequest implements IMqttMessageListener {
         printlnDebug("Requesting device sensors...");
 
         /**
-         * Requesting the devices that are connected to the node itself.
-         */
-        this.controllerImpl.loadConnectedDevices();
-
-        /**
          * If there are devices connected to the node itself.
          */
-        if (this.controllerImpl.getDevices().size() > 0) {
+        if (this.controllerImpl.getNode().getDevices().size() > 0) {
           JsonObject jsonGetSensors = new JsonObject();
           String deviceListJson = new Gson()
           .toJson(this.controllerImpl.loadSensorsTypes());
@@ -167,14 +152,9 @@ public class ListenerRequest implements IMqttMessageListener {
         printlnDebug("Requesting device sensors...");
 
         /**
-         * Requesting the devices that are connected to the node itself.
-         */
-        this.controllerImpl.loadConnectedDevices();
-
-        /**
          * If there are devices connected to the node itself.
          */
-        if (this.controllerImpl.getDevices().size() > 0) {
+        if (this.controllerImpl.getNode().getDevices().size() > 0) {
           JsonObject jsonGetSensors = new JsonObject();
           String deviceListJson = new Gson()
           .toJson(this.controllerImpl.loadSensorsTypes());

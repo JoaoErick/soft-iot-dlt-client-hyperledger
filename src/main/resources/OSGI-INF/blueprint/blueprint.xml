@@ -5,6 +5,13 @@
            xsi:schemaLocation="
              http://aries.apache.org/blueprint/xmlns/blueprint-cm/v1.1.0 http://aries.apache.org/schemas/blueprint-cm/blueprint-cm-1.1.0.xsd
              http://www.osgi.org/xmlns/blueprint/v1.0.0 https://www.osgi.org/xmlns/blueprint/v1.0.0/blueprint.xsd">
+
+    <bean id="node" class="br.uefs.larsid.dlt.iot.soft.model.Node"
+        init-method="start" destroy-method="stop">
+        <property name="checkDevicesCredentialProofTaskTime" value="${checkDevicesCredentialProofTaskTime}" />
+        <property name="deviceAPIAddress" value="${deviceAPIAddress}" />
+        <property name="debugModeValue" value="${debugModeValue}" />
+    </bean>
     
     <bean id="MQTTClientUp" class="br.uefs.larsid.dlt.iot.soft.mqtt.MQTTClient"
         init-method="start" destroy-method="stop">
@@ -26,12 +33,12 @@
 
     <bean id="controllerImpl" class="br.uefs.larsid.dlt.iot.soft.main.ControllerImpl"
         init-method="start" destroy-method="stop">
-        <property name="debugModeValue" value="${debugModeValue}" />
+        <property name="node" ref="node" />
         <property name="MQTTClientUp" ref="MQTTClientUp" />
         <property name="MQTTClientHost" ref="MQTTClientHost" />
-        <property name="urlAPI" value="${urlAPI}" />
         <property name="hasNodes" value="${hasNodes}" />
         <property name="timeoutInSeconds" value="${timeoutInSeconds}" />
+        <property name="debugModeValue" value="${debugModeValue}" />
         <property name="AGENT_ADDR" value="${AGENT_ADDR}" />
         <property name="AGENT_PORT" value="${AGENT_PORT}" />
     </bean>
@@ -46,9 +53,10 @@
 			<cm:property name="port" value="1883" />
 			<cm:property name="user" value="karaf" />
 			<cm:property name="pass" value="karaf" />
-            <cm:property name="urlAPI" value="http://localhost:8181/cxf/iot-service/devices" />
+            <cm:property name="deviceAPIAddress" value="http://localhost:8181/cxf/iot-service/devices" />
 			<cm:property name="hasNodes" value="true" />
 			<cm:property name="timeoutInSeconds" value="30" />
+            <cm:property name="checkDevicesCredentialProofTaskTime" value="10" />
 			<cm:property name="debugModeValue" value="true" />
 			<cm:property name="AGENT_ADDR" value="localhost" />
 			<cm:property name="AGENT_PORT" value="7021" />

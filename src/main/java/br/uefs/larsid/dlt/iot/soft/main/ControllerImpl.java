@@ -4,8 +4,8 @@ import br.uefs.larsid.dlt.iot.soft.controller.AriesController;
 import br.uefs.larsid.dlt.iot.soft.model.AttributeRestriction;
 import br.uefs.larsid.dlt.iot.soft.model.Credential;
 import br.uefs.larsid.dlt.iot.soft.model.CredentialDefinition;
-import br.uefs.larsid.dlt.iot.soft.model.Device;
 import br.uefs.larsid.dlt.iot.soft.model.Invitation;
+import br.uefs.larsid.dlt.iot.soft.model.Node;
 import br.uefs.larsid.dlt.iot.soft.model.Schema;
 import br.uefs.larsid.dlt.iot.soft.model.Sensor;
 import br.uefs.larsid.dlt.iot.soft.mqtt.ListenerConnection;
@@ -15,11 +15,7 @@ import br.uefs.larsid.dlt.iot.soft.mqtt.ListenerRequest;
 import br.uefs.larsid.dlt.iot.soft.mqtt.ListenerResponse;
 import br.uefs.larsid.dlt.iot.soft.mqtt.MQTTClient;
 import br.uefs.larsid.dlt.iot.soft.services.Controller;
-import br.uefs.larsid.dlt.iot.soft.utils.ClientIoTService;
 
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.zxing.WriterException;
@@ -32,15 +28,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
-import java.util.logging.Level;
 
 import org.hyperledger.aries.api.connection.ConnectionRecord;
 import org.hyperledger.aries.api.connection.CreateInvitationResponse;
 import org.hyperledger.aries.api.present_proof.PresentationExchangeRecord;
 import org.hyperledger.aries.api.present_proof.PresentationExchangeState;
 import org.hyperledger.aries.api.schema.SchemaSendResponse;
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 /**
  *
@@ -74,6 +67,8 @@ public class ControllerImpl implements Controller {
   private String AGENT_PORT;
   /* ----------------------------------------------------------------------- */
 
+  private Node node;
+
   private MQTTClient MQTTClientUp;
   private MQTTClient MQTTClientHost;
 
@@ -84,14 +79,11 @@ public class ControllerImpl implements Controller {
 
   private boolean hasNodes;
   private Map<String, String> connectionIdNodes = new LinkedHashMap<String, String>();
-  private Map<String, String> connectionIdDeviceNodes = new LinkedHashMap<String, String>();
   private List<String> nodesUris;
-  private List<Device> devices;
   private List<String> numberDevicesConnectedNodes;
 
   private Map<String, Integer> responseQueue = new LinkedHashMap<String, Integer>();
   private JsonObject sensorsTypesJSON = new JsonObject();
-  private String urlAPI;
 
   public static AriesController ariesController;
   public static Schema schema;
@@ -108,6 +100,7 @@ public class ControllerImpl implements Controller {
   public void start() {
     this.MQTTClientUp.connect();
     this.MQTTClientHost.connect();
+    this.node.setController(this);
 
     printlnDebug("Start Hyperledger Aries bundle!");
 
@@ -424,31 +417,31 @@ public class ControllerImpl implements Controller {
     String presentationExchangeId =
     ariesController.sendRequestPresentationRequest(name, comment, version, connectionId, attributesRestrictions);
 
-    printlnDebug("Submitting proof request...");
+    // printlnDebug("Submitting proof request...");
 
     PresentationExchangeRecord presentationExchangeRecord;
 
     do {
       presentationExchangeRecord = ariesController.getPresentation(presentationExchangeId);
-      printlnDebug("UpdateAt: " + presentationExchangeRecord.getUpdatedAt());
-      printlnDebug("Presentation: " + presentationExchangeRecord.getPresentation());
-      printlnDebug("Verified: " + presentationExchangeRecord.isVerified());
-      printlnDebug("State: " + presentationExchangeRecord.getState());
-      printlnDebug("Auto Presentation: " + presentationExchangeRecord.getAutoPresent()+ "\n");
+      // printlnDebug("UpdateAt: " + presentationExchangeRecord.getUpdatedAt());
+      // printlnDebug("Presentation: " + presentationExchangeRecord.getPresentation());
+      // printlnDebug("Verified: " + presentationExchangeRecord.isVerified());
+      // printlnDebug("State: " + presentationExchangeRecord.getState());
+      // printlnDebug("Auto Presentation: " + presentationExchangeRecord.getAutoPresent()+ "\n");
     } while
     (!presentationExchangeRecord.getState().equals(PresentationExchangeState.REQUEST_RECEIVED)
     &&
     !presentationExchangeRecord.getState().equals(PresentationExchangeState.VERIFIED));
 
-    printlnDebug("Proof Request Received!\n");
+    // printlnDebug("Proof Request Received!\n");
 
     verifyProofPresentation(ariesController, presentationExchangeId);
 
     Timestamp timeReceive = new Timestamp(System.currentTimeMillis());
-    printlnDebug("Calculate timestamp...");
-    printlnDebug("Initial Time: " + timeSend);
-    printlnDebug("Final Time: " + timeReceive);
-    printlnDebug("Difference: " + (timeReceive.getTime() - timeSend.getTime()) + " ms\n");
+    // printlnDebug("Calculate timestamp...");
+    // printlnDebug("Initial Time: " + timeSend);
+    // printlnDebug("Final Time: " + timeReceive);
+    printlnDebug("| Response Time: " + (timeReceive.getTime() - timeSend.getTime()) + " ms\n");
 
     this.proofOfCredentialReceived = true;
   }
@@ -462,12 +455,12 @@ public class ControllerImpl implements Controller {
    * @throws InterruptedException
     */
   private void verifyProofPresentation(AriesController ariesController, String presentationExchangeId) throws IOException, InterruptedException {
-    printlnDebug("Checking Proof Request...");
+    // printlnDebug("Checking Proof Request...");
 
     if (ariesController.getPresentation(presentationExchangeId).getVerified()) {
-      printlnDebug("Credential Verified!\n");
+      printlnDebug("| Credential Verified!");
     } else {
-      System.err.println("Unverified Credential!\n");
+      System.err.println("| Unverified Credential!");
     }
   }
 
@@ -516,7 +509,7 @@ public class ControllerImpl implements Controller {
 
     ConnectionRecord connectionRecord = ariesController.receiveInvitation(invitationObj);
 
-    this.addConnectionIdDeviceNodes(deviceId, connectionRecord.getConnectionId());
+    this.node.addConnectionIdDeviceNodes(deviceId, connectionRecord.getConnectionId());
 
     printlnDebug("\n\nConnection:\n" + connectionRecord.toString() + "\n");
 
@@ -564,66 +557,6 @@ public class ControllerImpl implements Controller {
   @Override
   public void removeSpecificResponse(String id) {
     responseQueue.remove(id);
-  }
-
-  /**
-   * Adds the devices that were requested to the device list.
-   */
-  @Override
-  public void loadConnectedDevices() {
-    this.loadConnectedDevices(ClientIoTService.getApiIot(this.urlAPI));
-  }
-
-  /**
-   * Adds the devices that were requested to the device list.
-   *
-   * @param strDevices String - Required devices.
-   */
-  private void loadConnectedDevices(String strDevices) {
-    List<Device> devicesTemp = new ArrayList<Device>();
-
-    try {
-      printlnDebug("JSON load:");
-      printlnDebug(strDevices);
-
-      JSONArray jsonArrayDevices = new JSONArray(strDevices);
-
-      for (int i = 0; i < jsonArrayDevices.length(); i++) {
-        JSONObject jsonDevice = jsonArrayDevices.getJSONObject(i);
-        ObjectMapper mapper = new ObjectMapper();
-        Device device = mapper.readValue(jsonDevice.toString(), Device.class);
-
-        devicesTemp.add(device);
-
-        List<Sensor> tempSensors = new ArrayList<Sensor>();
-        JSONArray jsonArraySensors = jsonDevice.getJSONArray("sensors");
-
-        for (int j = 0; j < jsonArraySensors.length(); j++) {
-          JSONObject jsonSensor = jsonArraySensors.getJSONObject(j);
-          Sensor sensor = mapper.readValue(jsonSensor.toString(), Sensor.class);
-          sensor.setUrlAPI(urlAPI);
-          tempSensors.add(sensor);
-        }
-
-        device.setSensors(tempSensors);
-      }
-    } catch (JsonParseException e) {
-      printlnDebug(
-        "Verify the correct format of 'DevicesConnected' property in configuration file."
-      );
-      log.log(Level.SEVERE, null, e);
-    } catch (JsonMappingException e) {
-      printlnDebug(
-        "Verify the correct format of 'DevicesConnected' property in configuration file."
-      );
-      log.log(Level.SEVERE, null, e);
-    } catch (IOException e) {
-      log.log(Level.SEVERE, null, e);
-    }
-
-    this.devices = devicesTemp;
-
-    printlnDebug("Amount of devices connected: " + this.devices.size());
   }
 
   /**
@@ -698,7 +631,7 @@ public class ControllerImpl implements Controller {
   public List<String> loadSensorsTypes() {
     List<String> sensorsList = new ArrayList<>();
 
-    for (Sensor sensor : this.getDevices().get(0).getSensors()) {
+    for (Sensor sensor : this.node.getDevices().get(0).getSensors()) {
       sensorsList.add(sensor.getType());
     }
 
@@ -825,22 +758,6 @@ public class ControllerImpl implements Controller {
     this.MQTTClientHost = mQTTClientHost;
   }
 
-  public List<Device> getDevices() {
-    return devices;
-  }
-
-  public void setDevices(List<Device> devices) {
-    this.devices = devices;
-  }
-
-  public String getUrlAPI() {
-    return urlAPI;
-  }
-
-  public void setUrlAPI(String urlAPI) {
-    this.urlAPI = urlAPI;
-  }
-
   public List<String> getNodesUris() {
     return nodesUris;
   }
@@ -895,14 +812,6 @@ public class ControllerImpl implements Controller {
     this.connectionIdNodes.put(nodeUri, connectionId);
   }
 
-  public Map<String, String> getConnectionIdDeviceNodes() {
-    return connectionIdDeviceNodes;
-  }
-
-  public void addConnectionIdDeviceNodes(String deviceId, String connectionId) {
-    this.connectionIdDeviceNodes.put(deviceId, connectionId);
-  }
-
   public int getTimeoutInSeconds() {
     return timeoutInSeconds;
   }
@@ -919,6 +828,14 @@ public class ControllerImpl implements Controller {
   @Override
   public JsonObject getSensorsTypesJSON() {
     return sensorsTypesJSON;
+  }
+
+  public Node getNode() {
+    return node;
+  }
+
+  public void setNode(Node node) {
+    this.node = node;
   }
 
   public String getAGENT_ADDR() {

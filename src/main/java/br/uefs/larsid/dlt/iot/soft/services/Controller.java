@@ -7,7 +7,7 @@ import java.util.Map;
 import com.google.gson.JsonObject;
 import com.google.zxing.WriterException;
 
-import br.uefs.larsid.dlt.iot.soft.model.Device;
+import br.uefs.larsid.dlt.iot.soft.model.Node;
 
 public interface Controller {
 
@@ -17,13 +17,6 @@ public interface Controller {
    * @return String
    */
   int getNodes();
-
-  /**
-   * Returns the connected devices.
-   *
-   * @return String
-   */
-  List<Device> getDevices();
 
   /**
    * Returns the number of devices connected to the nodes.
@@ -52,11 +45,6 @@ public interface Controller {
    *@param id String - Request Id.
    */
   void removeSpecificResponse(String key);
-
-  /**
-   * Adds the devices that were requested to the device list.
-   */
-  void loadConnectedDevices();
 
   /**
    * Adds a URI to the URI list.
@@ -121,22 +109,6 @@ public interface Controller {
    * @param connectionId - Node connection id
    */
   public void addConnectionIdNodes(String nodeUri, String connectionId);
-
-  /**
-   * Returns a map containing device id and connection id of 
-   * device connected nodes.
-   * 
-   * @return Map<String, String>
-   */
-  public Map<String, String> getConnectionIdDeviceNodes();
-
-  /**
-   * Adds the device id and connection id of the connected node.
-   * 
-   * @param deviceId - Id of the device want to connect.
-   * @param connectionId - Node connection id
-   */
-  public void addConnectionIdDeviceNodes(String deviceId, String connectionId);
 
   /**
    * Publishes the number of devices connected to nodes to the upper layer.
@@ -217,4 +189,8 @@ public interface Controller {
   public boolean isProofOfCredentialReceived();
 
   public void setProofOfCredentialReceived(boolean proofOfCredentialReceived);
+
+  public Node getNode();
+
+  public void setNode(Node node);
 }

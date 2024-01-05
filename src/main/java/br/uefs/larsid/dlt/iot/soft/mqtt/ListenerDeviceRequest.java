@@ -70,7 +70,7 @@ public class ListenerDeviceRequest implements IMqttMessageListener {
 
           try {
             /* Send request for presentation */
-            for (Map.Entry<String, String> connectionIdDeviceNode : this.controllerImpl.getConnectionIdDeviceNodes().entrySet()) {
+            for (Map.Entry<String, String> connectionIdDeviceNode : this.controllerImpl.getNode().getConnectionIdDeviceNodes().entrySet()) {
               String deviceId = connectionIdDeviceNode.getKey();
 
               printlnDebug("------------- Proof of Credential -------------");
