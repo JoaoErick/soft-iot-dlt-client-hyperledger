@@ -9,7 +9,7 @@ public class Sensor {
   private String id;
   private String type;
   private int value;
-  private String urlAPI;
+  private String deviceAPIAddress;
 
   @JsonProperty("collection_time")
   private int collectionTime;
@@ -25,7 +25,7 @@ public class Sensor {
    * @param idDevice String - Device Id.
    */
   public void getValue(String idDevice) {
-    String url = String.format("%s/%s/%s", urlAPI, idDevice, this.id);
+    String url = String.format("%s/%s/%s", deviceAPIAddress, idDevice, this.id);
     String response = ClientIoTService.getApiIot(url);
 
     if (response != null) {
@@ -76,11 +76,11 @@ public class Sensor {
     this.value = value;
   }
 
-  public String getUrlAPI() {
-    return urlAPI;
+  public String getDeviceAPIAddress() {
+    return deviceAPIAddress;
   }
 
-  public void setUrlAPI(String urlAPI) {
-    this.urlAPI = urlAPI;
+  public void setDeviceAPIAddress(String deviceAPIAddress) {
+    this.deviceAPIAddress = deviceAPIAddress;
   }
 }
