@@ -2,6 +2,8 @@ package br.uefs.larsid.dlt.iot.soft.mqtt;
 
 import br.uefs.larsid.dlt.iot.soft.services.MQTTClientService;
 import java.util.Arrays;
+import java.util.logging.Logger;
+
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.IMqttMessageListener;
 import org.eclipse.paho.client.mqttv3.IMqttToken;
@@ -27,6 +29,7 @@ public class MQTTClient implements MqttCallbackExtended, MQTTClientService {
   private MqttClient mqttClient;
   private MqttConnectOptions mqttOptions;
   private boolean debugModeValue;
+  private static final Logger logger = Logger.getLogger(MQTTClient.class.getName());
 
   public MQTTClient() {}
 
@@ -50,7 +53,7 @@ public class MQTTClient implements MqttCallbackExtended, MQTTClientService {
    * Inicializa o client MQTT.
    */
   public void start() {
-    printlnDebug("Starting MQTTClient...");
+    printlnDebug("(Hyperledger Bundle) Starting MQTTClient...");
     
     this.serverURI = String.format("tcp://%s:%s", this.ip, this.port);
 
@@ -69,7 +72,7 @@ public class MQTTClient implements MqttCallbackExtended, MQTTClientService {
    * Finaliza o client MQTT.
    */
   public void stop() {
-    printlnDebug("Finishing MQTTClient....");
+    printlnDebug("(Hyperledger Bundle) Finishing MQTTClient....");
   }
 
   /**
@@ -79,7 +82,7 @@ public class MQTTClient implements MqttCallbackExtended, MQTTClientService {
   public void connect() {
     try {
       printlnDebug(
-        "Trying to connect to the MQTT broker " + this.serverURI + "..."
+        "(Hyperledger Bundle) Trying to connect to the MQTT broker " + this.serverURI + "..."
       );
 
       this.mqttClient =
@@ -93,7 +96,7 @@ public class MQTTClient implements MqttCallbackExtended, MQTTClientService {
       this.mqttClient.connect(mqttOptions);
     } catch (MqttException ex) {
       printlnDebug(
-        "Error connecting to MQTT broker " + this.serverURI + " - " + ex
+        "(Hyperledger Bundle) Error connecting to MQTT broker " + this.serverURI + " - " + ex
       );
     }
   }
@@ -111,9 +114,9 @@ public class MQTTClient implements MqttCallbackExtended, MQTTClientService {
       mqttClient.disconnect();
       mqttClient.close();
 
-      printlnDebug("Disconnected from MQTT broker!");
+      printlnDebug("(Hyperledger Bundle) Disconnected from MQTT broker!");
     } catch (MqttException ex) {
-      printlnDebug("Error disconnecting from MQTT broker - " + ex);
+      printlnDebug("(Hyperledger Bundle) Error disconnecting from MQTT broker - " + ex);
     }
   }
 
@@ -156,7 +159,7 @@ public class MQTTClient implements MqttCallbackExtended, MQTTClientService {
     } catch (MqttException ex) {
       printlnDebug(
         String.format(
-          "Error subscribing to topics %s - %s",
+          "(Hyperledger Bundle) Error subscribing to topics %s - %s",
           Arrays.asList(topics),
           ex
         )
@@ -181,7 +184,7 @@ public class MQTTClient implements MqttCallbackExtended, MQTTClientService {
     } catch (MqttException ex) {
       printlnDebug(
         String.format(
-          "Error unsubscribing from topic %s - %s",
+          "(Hyperledger Bundle) Error unsubscribing from topic %s - %s",
           Arrays.asList(topics),
           ex
         )
@@ -222,21 +225,21 @@ public class MQTTClient implements MqttCallbackExtended, MQTTClientService {
       if (mqttClient.isConnected()) {
         mqttClient.publish(topic, payload, qos, retained);
         printlnDebug(
-          String.format("Topic %s published. %dB", topic, payload.length)
+          String.format("(Hyperledger Bundle) Topic %s published. %dB", topic, payload.length)
         );
       } else {
         printlnDebug(
-          "Client disconnected, could not publish topic " + topic
+          "(Hyperledger Bundle) Client disconnected, could not publish topic " + topic
         );
       }
     } catch (MqttException ex) {
-      printlnDebug("Error to publish " + topic + " - " + ex);
+      printlnDebug("(Hyperledger Bundle) Error to publish " + topic + " - " + ex);
     }
   }
 
   @Override
   public void connectionLost(Throwable cause) {
-    this.printlnDebug(String.format("Lost connection to broker (%s). %s", this.ip, cause));
+    this.printlnDebug(String.format("(Hyperledger Bundle) Lost connection to broker (%s). %s", this.ip, cause));
   }
 
   @Override
@@ -253,7 +256,7 @@ public class MQTTClient implements MqttCallbackExtended, MQTTClientService {
 
     this.printlnDebug(
         String.format(
-          "%s to the MQTT broker!",
+          "(Hyperledger Bundle) %s to the MQTT broker!",
           reconnect ? "Reconnected!" : "Connected"
         )
       );
@@ -261,7 +264,7 @@ public class MQTTClient implements MqttCallbackExtended, MQTTClientService {
 
   private void printlnDebug(String str) {
     if (debugModeValue) {
-      System.out.println(str);
+      logger.info(str);
     }
   }
 
