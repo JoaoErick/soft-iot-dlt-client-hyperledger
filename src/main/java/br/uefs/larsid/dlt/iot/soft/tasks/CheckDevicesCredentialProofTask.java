@@ -6,11 +6,16 @@ import java.util.Map;
 import java.util.TimerTask;
 import java.util.logging.Logger;
 
+import com.google.gson.JsonObject;
+
 import br.uefs.larsid.dlt.iot.soft.model.Node;
 import br.uefs.larsid.dlt.iot.soft.services.Controller;
 
 public class CheckDevicesCredentialProofTask extends TimerTask {
+    /*-------------------------Constants-------------------------------------*/
+    private static final String TOPIC = "AUTHENTICATED_DEVICES";
     private static final int TIMEOUT_IN_SECONDS = 15;
+    /*-----------------------------------------------------------------------*/
 
     private final Node node;
     private Controller controllerImpl;
@@ -39,23 +44,20 @@ public class CheckDevicesCredentialProofTask extends TimerTask {
 
     @Override
     public void run() {
-        logger.info("+----- Checking devices credential proofs -----+\n");
+        logger.info("+----- (Hyperledger Bundle) Checking devices credential proofs -----+\n");
 
         try {
             this.node.loadConnectedDevices();
 
-            printlnDebug("Devices: " + this.node.getDevices().size() + "\n");
-
             List<String> deviceIdsAuths = new ArrayList<>();
+            JsonObject jsonResponse = new JsonObject();
 
             /* Send request for presentation */
             for (Map.Entry<String, String> connectionIdDeviceNode : this.node
                     .getConnectionIdDeviceNodes().entrySet()) {
                 String deviceId = connectionIdDeviceNode.getKey();
 
-                // printlnDebug("------------- Proof of Credential -------------");
                 printlnDebug("| Device ID: " + deviceId);
-                // printlnDebug("-----------------------------------------------\n");
 
                 this.controllerImpl.sendRequestPresentationRequest(connectionIdDeviceNode.getValue());
 
@@ -76,17 +78,21 @@ public class CheckDevicesCredentialProofTask extends TimerTask {
             }
 
             printlnDebug(
-                    "(Hyperledger Bundle) Autheticated Devices = " +
-                            deviceIdsAuths +
+                    "(Hyperledger Bundle) Amount Autheticated Devices: " +
+                            deviceIdsAuths.size() + " of " + 
+                            this.node.getDevices().size() +
                             "\n");
+
+            printlnDebug("+-------------------------------------------------------------------+\n");
+
+            jsonResponse.addProperty("authDevices", deviceIdsAuths.toString());
+            this.node.getController().getMQTTClientHost().publish(TOPIC, jsonResponse.toString().getBytes(), 1);
         } catch (Exception e) {
-            logger.severe("Unable to update device list.");
+            logger.severe("!Error when publishing to send authenticated devices!");
             logger.severe(e.getMessage());
             logger.severe(e.getStackTrace().toString());
             this.cancel();
         }
-
-        printlnDebug("+----------------------------------------------+\n");
     }
 
     private void printlnDebug(String str) {

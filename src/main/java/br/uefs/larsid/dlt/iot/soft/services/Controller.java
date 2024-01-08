@@ -8,6 +8,7 @@ import com.google.gson.JsonObject;
 import com.google.zxing.WriterException;
 
 import br.uefs.larsid.dlt.iot.soft.model.Node;
+import br.uefs.larsid.dlt.iot.soft.mqtt.MQTTClient;
 
 public interface Controller {
 
@@ -193,4 +194,6 @@ public interface Controller {
   public Node getNode();
 
   public void setNode(Node node);
+
+  public MQTTClient getMQTTClientHost();
 }
