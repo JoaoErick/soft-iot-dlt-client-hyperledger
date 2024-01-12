@@ -10,7 +10,6 @@ import br.uefs.larsid.dlt.iot.soft.model.Schema;
 import br.uefs.larsid.dlt.iot.soft.model.Sensor;
 import br.uefs.larsid.dlt.iot.soft.mqtt.ListenerConnection;
 import br.uefs.larsid.dlt.iot.soft.mqtt.ListenerDeviceConnection;
-import br.uefs.larsid.dlt.iot.soft.mqtt.ListenerDeviceRequest;
 import br.uefs.larsid.dlt.iot.soft.mqtt.ListenerRequest;
 import br.uefs.larsid.dlt.iot.soft.mqtt.ListenerResponse;
 import br.uefs.larsid.dlt.iot.soft.mqtt.MQTTClient;
@@ -142,7 +141,6 @@ public class ControllerImpl implements Controller {
       );
     } else {
       String[] topicsRequest = { N_DEVICES_EDGE, SENSORS_EDGE };
-      String[] topicsDeviceRequest = { AUTHENTICATED_DEVICES };
 
       new ListenerRequest(
         this,
@@ -150,17 +148,6 @@ public class ControllerImpl implements Controller {
         MQTTClientHost,
         this.nodesUris,
         topicsRequest,
-        QOS,
-        debugModeValue
-      );
-
-      String nodeUri = String
-      .format("%s:%s", MQTTClientHost.getIp(), MQTTClientHost.getPort());
-      new ListenerDeviceRequest(
-        this,
-        MQTTClientHost,
-        nodeUri,
-        topicsDeviceRequest,
         QOS,
         debugModeValue
       );
