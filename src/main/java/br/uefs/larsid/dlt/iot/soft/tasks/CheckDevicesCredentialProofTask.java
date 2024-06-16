@@ -91,7 +91,6 @@ public class CheckDevicesCredentialProofTask extends TimerTask {
             logger.severe("!Error when publishing to send authenticated devices!");
             logger.severe(e.getMessage());
             logger.severe(e.getStackTrace().toString());
-            this.cancel();
         }
     }
 
